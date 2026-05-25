@@ -6,8 +6,8 @@
 # =============================================
 set -e
 
-DOMAIN="crm.midominio.com"           # CAMBIA por tu dominio real
-APP_DIR="/opt/crmge"
+DOMAIN="crm.greenenergytechnologie.com"           # CAMBIA por tu dominio real
+APP_DIR="/apps/crmge"
 LOG_DIR="/var/log/crmge"
 
 echo "=== [1/6] Creando directorios ==="
@@ -48,7 +48,7 @@ npx vite build
 
 echo "=== [6/6] Configurando Nginx y arrancando ==="
 cp $APP_DIR/nginx-crmge.conf /etc/nginx/sites-available/crmge
-sed -i "s/crm.midominio.com/$DOMAIN/g" /etc/nginx/sites-available/crmge
+sed -i "s/crm.greenenergytechnologie.com/$DOMAIN/g" /etc/nginx/sites-available/crmge
 ln -sf /etc/nginx/sites-available/crmge /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 

@@ -26,6 +26,7 @@ echo "=== [3/6] Copiando archivos del proyecto ==="
 cp -r server $APP_DIR/ 2>/dev/null || true
 cp -r client $APP_DIR/ 2>/dev/null || true
 cp ecosystem.config.js $APP_DIR/ 2>/dev/null || true
+cp nginx-crmge.conf $APP_DIR/ 2>/dev/null || true
 
 echo "=== [4/6] Configurando base de datos ==="
 echo "Asegúrate de que la BD 'crmge' existe en tu PostgreSQL:"

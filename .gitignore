@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.production
+
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+*.tsbuildinfo
+
+server/dist/
+client/dist/
+
+postgres-data/

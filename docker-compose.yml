@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: crmge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crmge
+      POSTGRES_USER: crmge_user
+      POSTGRES_PASSWORD: crmge_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -18,7 +18,7 @@ if ! command -v node &> /dev/null; then
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
 fi
-npm install -g pm2 tsx
+npm install -g pm2
 
 echo "=== [3/6] Copiando archivos del proyecto ==="
 # Asume que ya hiciste rsync del proyecto a $APP_DIR
@@ -37,6 +37,7 @@ read -p "¿Ya creaste la BD crmge? Presiona Enter para continuar..."
 cd $APP_DIR/server
 cp .env.production .env
 npm install
+npm run build
 npx prisma generate
 npx prisma migrate deploy
 npx prisma db seed || echo "Seed: ya existían datos"

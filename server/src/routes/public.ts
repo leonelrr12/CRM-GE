@@ -6,27 +6,41 @@ const prisma = new PrismaClient();
 
 router.post('/lead', async (req: Request, res: Response) => {
   try {
-    const { name, email, phone, source, notes } = req.body as {
+    const {
+      name, email, phone, contactPhone,
+      serviceInterest, city, budget, receiptImage,
+      source, notes,
+    } = req.body as {
       name?: string;
       email?: string;
       phone?: string;
+      contactPhone?: string;
+      serviceInterest?: string;
+      city?: string;
+      budget?: string;
+      receiptImage?: string;
       source?: string;
       notes?: string;
     };
 
-    if (!name || !email || !phone) {
-      res.status(400).json({ error: 'Nombre, email y teléfono son requeridos' });
+    if (!name) {
+      res.status(400).json({ error: 'El nombre es requerido' });
       return;
     }
 
-    const allowedSources = ['web', 'ig_ads', 'otro'];
-    const finalSource = allowedSources.includes(source || '') ? source! : 'web';
+    const allowedSources = ['whatsapp', 'web', 'ig_ads', 'otro'];
+    const finalSource = allowedSources.includes(source || '') ? source! : 'whatsapp';
 
     const lead = await prisma.lead.create({
       data: {
         name,
-        email,
-        phone,
+        email: email || null,
+        phone: phone || null,
+        contactPhone: contactPhone || null,
+        serviceInterest: serviceInterest || null,
+        city: city || null,
+        budget: budget || null,
+        receiptImage: receiptImage || null,
         source: finalSource,
         status: 'nuevo',
         notes: notes || null,

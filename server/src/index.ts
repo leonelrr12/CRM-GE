@@ -13,7 +13,25 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://host.docker.internal:3000',
+  'http://backend:3000',
+  /^http:\/\/172\.\d+\.\d+\.\d+:\d+$/,
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = allowedOrigins.some((o) =>
+      typeof o === 'string' ? origin === o : o.test(origin),
+    );
+    if (allowed) return callback(null, true);
+    callback(null, true);
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);

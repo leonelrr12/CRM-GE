@@ -10,6 +10,11 @@ export interface Lead {
   name: string;
   email: string | null;
   phone: string | null;
+  contactPhone: string | null;
+  serviceInterest: string | null;
+  city: string | null;
+  budget: string | null;
+  receiptImage: string | null;
   source: string;
   status: LeadStatus;
   notes: string | null;
@@ -41,6 +46,7 @@ export interface DashboardStats {
 export const SOURCES = [
   { value: 'web', label: 'Sitio Web' },
   { value: 'ig_ads', label: 'Instagram Ads' },
+  { value: 'whatsapp', label: 'WhatsApp' },
   { value: 'otro', label: 'Otro' },
 ] as const;
 

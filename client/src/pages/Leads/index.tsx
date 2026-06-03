@@ -5,6 +5,15 @@ import api from '../../services/api';
 import type { Lead } from '../../types';
 import { SOURCES, STATUSES } from '../../types';
 
+function sourceLabel(source: string) {
+  const found = SOURCES.find((s) => s.value === source);
+  if (found) return found.label;
+  if (source === 'web') return '🌐 Web';
+  if (source === 'ig_ads') return '📱 IG Ads';
+  if (source === 'whatsapp') return '💬 WhatsApp';
+  return source;
+}
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,14 +135,13 @@ export default function LeadsPage() {
               ) : (
                 leads.map((lead) => {
                   const status = STATUSES.find((s) => s.value === lead.status);
+                  const displayPhone = lead.contactPhone || lead.phone || '-';
                   return (
                     <tr key={lead.id} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/leads/${lead.id}`)}>
                       <td className="px-4 py-3 text-gray-900 font-medium">{lead.name}</td>
                       <td className="px-4 py-3 text-gray-500">{lead.email || '-'}</td>
-                      <td className="px-4 py-3 text-gray-500">{lead.phone || '-'}</td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {lead.source === 'web' ? '🌐 Web' : lead.source === 'ig_ads' ? '📱 IG Ads' : lead.source}
-                      </td>
+                      <td className="px-4 py-3 text-gray-500">{displayPhone}</td>
+                      <td className="px-4 py-3 text-gray-500">{sourceLabel(lead.source)}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status?.color}`}>
                           {status?.label}

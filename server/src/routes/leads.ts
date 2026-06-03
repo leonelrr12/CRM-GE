@@ -62,7 +62,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, email, phone, source, status, notes } = req.body;
+    const { name, email, phone, contactPhone, serviceInterest, city, budget, receiptImage, source, status, notes } = req.body;
 
     if (!name) {
       res.status(400).json({ error: 'El nombre es requerido' });
@@ -74,6 +74,11 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         name,
         email: email || null,
         phone: phone || null,
+        contactPhone: contactPhone || null,
+        serviceInterest: serviceInterest || null,
+        city: city || null,
+        budget: budget || null,
+        receiptImage: receiptImage || null,
         source: source || 'web',
         status: status || 'nuevo',
         notes: notes || null,
@@ -89,7 +94,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, email, phone, source, status, notes } = req.body;
+    const { name, email, phone, contactPhone, serviceInterest, city, budget, receiptImage, source, status, notes } = req.body;
 
     const lead = await prisma.lead.update({
       where: { id: req.params.id as string },
@@ -97,6 +102,11 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
         ...(name !== undefined && { name: name as string }),
         ...(email !== undefined && { email: email as string }),
         ...(phone !== undefined && { phone: phone as string }),
+        ...(contactPhone !== undefined && { contactPhone: contactPhone as string }),
+        ...(serviceInterest !== undefined && { serviceInterest: serviceInterest as string }),
+        ...(city !== undefined && { city: city as string }),
+        ...(budget !== undefined && { budget: budget as string }),
+        ...(receiptImage !== undefined && { receiptImage: receiptImage as string }),
         ...(source !== undefined && { source: source as string }),
         ...(status !== undefined && { status: status as LeadStatus }),
         ...(notes !== undefined && { notes: notes as string }),

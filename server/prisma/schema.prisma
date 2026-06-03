@@ -20,16 +20,21 @@ model User {
 }
 
 model Lead {
-  id          String     @id @default(uuid())
-  name        String
-  email       String?
-  phone       String?
-  source      String     @default("web")
-  status      String     @default("nuevo")
-  notes       String?
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  activities  Activity[]
+  id              String     @id @default(uuid())
+  name            String
+  email           String?
+  phone           String?
+  contactPhone    String?    @map("contact_phone")
+  serviceInterest String?    @map("service_interest")
+  city            String?
+  budget          String?
+  receiptImage    String?    @map("receipt_image")
+  source          String     @default("whatsapp")
+  status          String     @default("nuevo")
+  notes           String?
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  activities      Activity[]
 
   @@map("leads")
 }

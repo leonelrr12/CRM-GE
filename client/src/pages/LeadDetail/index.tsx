@@ -5,6 +5,16 @@ import api from '../../services/api';
 import type { Lead, Activity } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
+function safeImageUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
+}
+
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -141,10 +151,17 @@ export default function LeadDetailPage() {
                 <label className="block text-xs text-gray-500 mb-1">Recibo de luz</label>
                 <div className="relative inline-block">
                   <img
-                    src={editForm.receiptImage}
+                    src={safeImageUrl(editForm.receiptImage)}
                     alt="Recibo de luz"
                     className="max-w-xs max-h-48 rounded-lg border border-gray-200 cursor-pointer object-cover"
                     onClick={() => setShowReceipt(true)}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      if (target.nextElementSibling) {
+                        (target.nextElementSibling as HTMLElement).textContent = '💡 Imagen no disponible';
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-400 mt-1">Click para ampliar</p>
                 </div>
@@ -237,7 +254,7 @@ export default function LeadDetailPage() {
       {showReceipt && editForm.receiptImage && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setShowReceipt(false)}>
           <img
-            src={editForm.receiptImage}
+            src={safeImageUrl(editForm.receiptImage)}
             alt="Recibo de luz"
             className="max-w-[90vw] max-h-[90vh] rounded-lg"
             onClick={(e) => e.stopPropagation()}

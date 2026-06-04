@@ -1,13 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Columns2 } from 'lucide-react';
-
-const links = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/leads', icon: Users, label: 'Leads' },
-  { to: '/pipeline', icon: Columns2, label: 'Pipeline' },
-];
+import { LayoutDashboard, Users, Columns2, Shield } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Sidebar() {
+  const { user } = useAuth();
+
+  const links = [
+    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/leads', icon: Users, label: 'Leads' },
+    { to: '/pipeline', icon: Columns2, label: 'Pipeline' },
+  ];
+
   return (
     <aside className="w-56 bg-gray-900 text-white flex flex-col shrink-0">
       <div className="p-4 border-b border-gray-700">
@@ -31,6 +34,26 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+        {user?.role === 'admin' && (
+          <>
+            <div className="pt-3 pb-1">
+              <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3">Admin</p>
+            </div>
+            <NavLink
+              to="/admin/users"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`
+              }
+            >
+              <Shield size={18} />
+              Usuarios
+            </NavLink>
+          </>
+        )}
       </nav>
       <div className="p-4 border-t border-gray-700 text-xs text-gray-500">
         CRM-GE v1.0

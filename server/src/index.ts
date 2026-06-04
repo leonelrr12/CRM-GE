@@ -7,6 +7,7 @@ import activityRoutes from './routes/activities';
 import dashboardRoutes from './routes/dashboard';
 import exportRoutes from './routes/export';
 import publicRoutes from './routes/public';
+import adminRoutes from './routes/admin';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

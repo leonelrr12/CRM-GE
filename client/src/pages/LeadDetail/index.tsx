@@ -5,6 +5,16 @@ import api from '../../services/api';
 import type { Lead, Activity } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
+function safeImageUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
+}
+
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -15,6 +25,7 @@ export default function LeadDetailPage() {
   const [editForm, setEditForm] = useState<Partial<Lead>>({});
   const [newActivity, setNewActivity] = useState({ type: 'nota', description: '' });
   const [showActivityForm, setShowActivityForm] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const fetchLead = useCallback(async () => {
     const [leadRes, actRes] = await Promise.all([
@@ -89,12 +100,32 @@ export default function LeadDetailPage() {
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
+                <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                <input type="text" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
                 <label className="block text-xs text-gray-500 mb-1">Email</label>
                 <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Teléfono</label>
+                <label className="block text-xs text-gray-500 mb-1">Teléfono de contacto</label>
+                <input type="tel" value={editForm.contactPhone || ''} onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Teléfono (ID WhatsApp)</label>
                 <input type="tel" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Servicio de interés</label>
+                <input type="text" value={editForm.serviceInterest || ''} onChange={(e) => setEditForm({ ...editForm, serviceInterest: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Ciudad / Ubicación</label>
+                <input type="text" value={editForm.city || ''} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Presupuesto / Consumo</label>
+                <input type="text" value={editForm.budget || ''} onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Fuente</label>
@@ -114,6 +145,28 @@ export default function LeadDetailPage() {
               <label className="block text-xs text-gray-500 mb-1">Notas</label>
               <textarea value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
             </div>
+
+            {editForm.receiptImage && (
+              <div className="mb-4">
+                <label className="block text-xs text-gray-500 mb-1">Recibo de luz</label>
+                <div className="relative inline-block">
+                  <img
+                    src={safeImageUrl(editForm.receiptImage)}
+                    alt="Recibo de luz"
+                    className="max-w-xs max-h-48 rounded-lg border border-gray-200 cursor-pointer object-cover"
+                    onClick={() => setShowReceipt(true)}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      if (target.nextElementSibling) {
+                        (target.nextElementSibling as HTMLElement).textContent = '💡 Imagen no disponible';
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Click para ampliar</p>
+                </div>
+              </div>
+            )}
 
             <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
               <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
@@ -178,6 +231,18 @@ export default function LeadDetailPage() {
                 <p className="text-gray-700">{new Date(lead.updatedAt).toLocaleString()}</p>
               </div>
               <div>
+                <p className="text-gray-400 text-xs">Servicio</p>
+                <p className="text-gray-700">{lead.serviceInterest || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Ciudad</p>
+                <p className="text-gray-700">{lead.city || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Presupuesto</p>
+                <p className="text-gray-700">{lead.budget || '-'}</p>
+              </div>
+              <div>
                 <p className="text-gray-400 text-xs">Actividades</p>
                 <p className="text-gray-700">{activities.length} registradas</p>
               </div>
@@ -185,6 +250,17 @@ export default function LeadDetailPage() {
           </div>
         </div>
       </div>
+
+      {showReceipt && editForm.receiptImage && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setShowReceipt(false)}>
+          <img
+            src={safeImageUrl(editForm.receiptImage)}
+            alt="Recibo de luz"
+            className="max-w-[90vw] max-h-[90vh] rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

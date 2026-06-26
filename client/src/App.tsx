@@ -7,6 +7,7 @@ import LeadsPage from './pages/Leads';
 import LeadDetailPage from './pages/LeadDetail';
 import PipelinePage from './pages/Pipeline';
 import PublicFormPage from './pages/PublicForm';
+import AdminUsersPage from './pages/AdminUsers';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/leads/:id" element={<LeadDetailPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

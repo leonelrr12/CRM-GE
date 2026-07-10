@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  createdAt: string;
 }
 
 export interface Lead {
@@ -23,7 +24,7 @@ export interface Lead {
   activities?: Activity[];
 }
 
-export type LeadStatus = 'nuevo' | 'contactado' | 'negociacion' | 'cerrado' | 'perdido';
+export type LeadStatus = 'nuevo' | 'contactado' | 'calificado' | 'enviar_propuesta' | 'negociacion' | 'cerrado' | 'perdido';
 
 export interface Activity {
   id: string;
@@ -53,6 +54,8 @@ export const SOURCES = [
 export const STATUSES: { value: LeadStatus; label: string; color: string }[] = [
   { value: 'nuevo', label: 'Nuevo', color: 'bg-blue-100 text-blue-800' },
   { value: 'contactado', label: 'Contactado', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'calificado', label: 'Calificado', color: 'bg-cyan-100 text-cyan-800' },
+  { value: 'enviar_propuesta', label: 'Enviar propuesta', color: 'bg-indigo-100 text-indigo-800' },
   { value: 'negociacion', label: 'Negociación', color: 'bg-purple-100 text-purple-800' },
   { value: 'cerrado', label: 'Cerrado', color: 'bg-green-100 text-green-800' },
   { value: 'perdido', label: 'Perdido', color: 'bg-red-100 text-red-800' },

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, MessageSquarePlus } from 'lucide-react';
 import api from '../../services/api';
-import type { Lead, Activity } from '../../types';
+import type { Lead, Activity, LeadStatus } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
 function safeImageUrl(url: string | null | undefined): string | undefined {
@@ -135,7 +135,7 @@ export default function LeadDetailPage() {
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Estado</label>
-                <select value={editForm.status || 'nuevo'} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <select value={editForm.status || 'nuevo'} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as LeadStatus })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
                   {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>

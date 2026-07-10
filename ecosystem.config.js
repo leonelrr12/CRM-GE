@@ -4,6 +4,9 @@ module.exports = {
       name: 'crmge-api',
       cwd: '/apps/crmge/server',
       script: 'dist/index.js',
+      env: {
+        PORT: '3005',
+      },
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,

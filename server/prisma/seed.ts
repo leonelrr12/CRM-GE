@@ -20,11 +20,11 @@ async function main() {
   const leads = [
     { name: 'Carlos Mendoza', email: 'carlos@email.com', phone: '555-1001', source: 'web', status: 'nuevo', notes: 'Interesado en plan premium' },
     { name: 'María García', email: 'maria@email.com', phone: '555-1002', source: 'ig_ads', status: 'contactado', notes: 'Llamar el lunes' },
-    { name: 'Juan Pérez', email: 'juan@email.com', phone: '555-1003', source: 'web', status: 'negociacion', notes: 'Esperando propuesta' },
-    { name: 'Ana López', email: 'ana@email.com', phone: '555-1004', source: 'ig_ads', status: 'cerrado', notes: 'Contrato firmado' },
-    { name: 'Pedro Ramírez', email: 'pedro@email.com', phone: '555-1005', source: 'web', status: 'nuevo', notes: 'Solicitó demo' },
-    { name: 'Laura Díaz', email: 'laura@email.com', phone: '555-1006', source: 'ig_ads', status: 'perdido', notes: 'Se fue con competencia' },
-    { name: 'Roberto Torres', email: 'roberto@email.com', phone: '555-1007', source: 'web', status: 'contactado', notes: '' },
+    { name: 'Juan Pérez', email: 'juan@email.com', phone: '555-1003', source: 'web', status: 'calificado', notes: 'Presupuesto aprobado' },
+    { name: 'Ana López', email: 'ana@email.com', phone: '555-1004', source: 'ig_ads', status: 'enviar_propuesta', notes: 'Propuesta enviada el viernes' },
+    { name: 'Pedro Ramírez', email: 'pedro@email.com', phone: '555-1005', source: 'web', status: 'negociacion', notes: 'Ajustando detalles del contrato' },
+    { name: 'Laura Díaz', email: 'laura@email.com', phone: '555-1006', source: 'ig_ads', status: 'cerrado', notes: 'Contrato firmado' },
+    { name: 'Roberto Torres', email: 'roberto@email.com', phone: '555-1007', source: 'web', status: 'perdido', notes: 'Se fue con competencia' },
     { name: 'Sofía Herrera', email: 'sofia@email.com', phone: '555-1008', source: 'ig_ads', status: 'nuevo', notes: '' },
   ];
 

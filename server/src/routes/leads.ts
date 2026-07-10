@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 
-const LEAD_STATUSES = ['nuevo', 'contactado', 'negociacion', 'cerrado', 'perdido'] as const;
+const LEAD_STATUSES = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'] as const;
 type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 router.get('/', async (req: AuthRequest, res: Response) => {

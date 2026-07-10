@@ -41,11 +41,7 @@ export default function PublicFormPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">☀️</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Green Energy Technology</h1>
-          <p className="text-gray-500 mt-1">Solicita tu cotización sin compromiso</p>
+          <p className="text-gray-500 mt-1">Solicitar información</p>
         </div>
 
         {error && (
@@ -140,7 +136,7 @@ export default function PublicFormPage() {
             type="submit"
             className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors cursor-pointer"
           >
-            Solicitar cotización
+            Solicitar información
           </button>
         </form>
 

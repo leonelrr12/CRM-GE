@@ -97,7 +97,7 @@ export default function PipelinePage() {
     const leadId = active.id as string;
     const newStatus = over.id as LeadStatus;
 
-    const validStatuses: LeadStatus[] = ['nuevo', 'contactado', 'negociacion', 'cerrado', 'perdido'];
+    const validStatuses: LeadStatus[] = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'];
     if (!validStatuses.includes(newStatus)) return;
 
     setLeads((prev) =>
@@ -115,7 +115,7 @@ export default function PipelinePage() {
     );
   }
 
-  const columns: LeadStatus[] = ['nuevo', 'contactado', 'negociacion', 'cerrado', 'perdido'];
+  const columns: LeadStatus[] = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'];
 
   return (
     <div>
@@ -123,7 +123,7 @@ export default function PipelinePage() {
       <p className="text-sm text-gray-500 mb-4">Arrastra los leads entre columnas para cambiar su estado</p>
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-7 gap-3">
           {columns.map((status) => {
             const columnLeads = leads.filter((l) => l.status === status);
             return (

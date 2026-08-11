@@ -1,13 +1,9 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../lib/prisma';
+import prisma from '@/lib/prisma';
 
 const router = Router();
 
 // No need for auth on public endpoint
-
-router.get('/test', (req: Request, res: Response) => {
-  res.send('test');
-});
 
 router.post('/lead', async (req: Request, res: Response) => {
   try {

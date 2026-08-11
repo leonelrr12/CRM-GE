@@ -1,8 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { AuthRequest } from './auth';
-
-const prisma = new PrismaClient();
 
 export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {

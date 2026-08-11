@@ -1,10 +1,9 @@
 import { Router, Response } from 'express';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 router.use(authenticateToken);
 
 const LEAD_STATUSES = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'] as const;
@@ -38,6 +37,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     res.json(leads);
   } catch (error) {
+    console.error('Error al obtener leads:', error);
     res.status(500).json({ error: 'Error al obtener leads' });
   }
 });
@@ -56,6 +56,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
     res.json(lead);
   } catch (error) {
+    console.error('Error al obtener lead:', error);
     res.status(500).json({ error: 'Error al obtener lead' });
   }
 });
@@ -66,6 +67,12 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     if (!name) {
       res.status(400).json({ error: 'El nombre es requerido' });
+      return;
+    }
+
+    // Validar email si se proporciona
+    if (email && !email.includes('@')) {
+      res.status(400).json({ error: 'Email inválido' });
       return;
     }
 
@@ -88,6 +95,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(lead);
   } catch (error) {
+    console.error('Error al crear lead:', error);
     res.status(500).json({ error: 'Error al crear lead' });
   }
 });
@@ -95,6 +103,12 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, phone, contactPhone, serviceInterest, city, budget, receiptImage, source, status, notes } = req.body;
+
+    // Validar email si se proporciona
+    if (email && !email.includes('@')) {
+      res.status(400).json({ error: 'Email inválido' });
+      return;
+    }
 
     const lead = await prisma.lead.update({
       where: { id: req.params.id as string },
@@ -116,6 +130,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
     res.json(lead);
   } catch (error) {
+    console.error('Error al actualizar lead:', error);
     res.status(500).json({ error: 'Error al actualizar lead' });
   }
 });
@@ -123,6 +138,11 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.body;
+
+    if (!status) {
+      res.status(400).json({ error: 'Estado es requerido' });
+      return;
+    }
 
     if (!LEAD_STATUSES.includes(status)) {
       res.status(400).json({ error: 'Estado no válido' });
@@ -146,6 +166,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
     res.json(lead);
   } catch (error) {
+    console.error('Error al actualizar estado:', error);
     res.status(500).json({ error: 'Error al actualizar estado' });
   }
 });
@@ -155,6 +176,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     await prisma.lead.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Lead eliminado' });
   } catch (error) {
+    console.error('Error al eliminar lead:', error);
     res.status(500).json({ error: 'Error al eliminar lead' });
   }
 });

@@ -1,19 +1,28 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken, AuthRequest, JWT_SECRET } from '../middleware/auth';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'crmge-super-secret-key-change-in-production';
 
 router.post('/register', async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password } = req.body;
 
+    // Validación de entrada
     if (!name || !email || !password) {
       res.status(400).json({ error: 'Todos los campos son requeridos' });
+      return;
+    }
+
+    if (!email.includes('@')) {
+      res.status(400).json({ error: 'Email inválido' });
+      return;
+    }
+
+    if (password.length < 6) {
+      res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
       return;
     }
 
@@ -35,6 +44,7 @@ router.post('/register', async (req: AuthRequest, res: Response) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
+    console.error('Error en registro:', error);
     res.status(500).json({ error: 'Error al registrar usuario' });
   }
 });
@@ -50,12 +60,14 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      // Respuesta genérica para evitar enumeración de usuarios
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      // Respuesta genérica para evitar enumeración de usuarios
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
@@ -67,6 +79,7 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
+    console.error('Error en login:', error);
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
@@ -85,6 +98,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
 
     res.json(user);
   } catch (error) {
+    console.error('Error al obtener usuario:', error);
     res.status(500).json({ error: 'Error al obtener usuario' });
   }
 });

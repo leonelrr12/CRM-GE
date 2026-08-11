@@ -29,7 +29,7 @@ app.use(cors({
       typeof o === 'string' ? origin === o : o.test(origin),
     );
     if (allowed) return callback(null, true);
-    callback(null, true);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));

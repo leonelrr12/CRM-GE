@@ -20,6 +20,7 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://host.docker.internal:3000',
   'http://backend:3000',
+  'https://crm.greenenergytechnologie.com',
   /^http:\/\/172\.\d+\.\d+\.\d+:\d+$/,
 ];
 app.use(cors({

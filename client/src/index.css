@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+/* Marca dinámica por empresa: el color se setea en runtime (--brand)
+   desde PublicForm (color de la empresa) y MainLayout (empresa del usuario).
+   Fallback: blue-600, el look actual del CRM. */
+:root {
+  --brand: #2563eb;
+}
+
+@theme inline {
+  --color-brand: var(--brand, #2563eb);
+}

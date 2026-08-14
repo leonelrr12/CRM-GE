@@ -15,29 +15,29 @@ APP_DIR="/apps/crmge"
 LOG_DIR="/var/log/crmge"
 MAILER_DIR="/root/apps/mailerApi"                 # repo hermano del microservicio de correo
 
-echo "=== [1/6] Creando directorios ==="
+echo "=== [1/7] Creando directorios ==="
 mkdir -p $APP_DIR $LOG_DIR
 
-echo "=== [2/6] Node.js 20 (solo para compilar; el runtime es docker) ==="
+echo "=== [2/7] Node.js 20 (solo para compilar; el runtime es docker) ==="
 if ! command -v node &> /dev/null; then
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
 fi
 
-echo "=== [3/6] Build del backend ==="
+echo "=== [3/7] Build del backend ==="
 cd server
 npm install
 npx prisma generate
 npm run build
 cd ..
 
-echo "=== [4/6] Build del frontend ==="
+echo "=== [4/7] Build del frontend ==="
 cd client
 npm install
 npx vite build
 cd ..
 
-echo "=== [5/6] Sincronizando a $APP_DIR ==="
+echo "=== [5/7] Sincronizando a $APP_DIR ==="
 # El Dockerfile del api copia dist/ y node_modules ya preparados en el host;
 # el .env de producción se respeta (no se pisa con el de desarrollo).
 rsync -a --delete --exclude '.env' server/ $APP_DIR/server/
@@ -47,7 +47,14 @@ rsync -a --delete --exclude node_modules --exclude .git $MAILER_DIR/ $APP_DIR/ma
 cp docker-compose.yml $APP_DIR/
 cp nginx-crmge.conf $APP_DIR/
 
-echo "=== [6/6] Levantando stack docker ==="
+echo "=== [6/7] Migración de BD ==="
+cd $APP_DIR/server
+# El .env de $APP_DIR/server (rsync lo excluye, no se pisa) debe apuntar a la
+# BD alcanzable desde el host; alternativa: docker exec crmge-api npx prisma migrate deploy
+npx prisma migrate deploy
+cd ..
+
+echo "=== [7/7] Levantando stack docker ==="
 cd $APP_DIR
 docker compose up -d --build
 

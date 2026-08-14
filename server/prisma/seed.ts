@@ -18,17 +18,27 @@ async function main() {
     },
   });
 
-  // Empresas demo
+  // Empresas demo (con branding de ejemplo)
   const green = await prisma.company.upsert({
     where: { slug: 'green-energy-technologie' },
-    update: {},
-    create: { name: 'Green Energy Technologie', slug: 'green-energy-technologie' },
+    update: { primaryColor: '#16a34a', logoUrl: 'https://placehold.co/240x72/16a34a/white?text=Green+Energy' },
+    create: {
+      name: 'Green Energy Technologie',
+      slug: 'green-energy-technologie',
+      primaryColor: '#16a34a',
+      logoUrl: 'https://placehold.co/240x72/16a34a/white?text=Green+Energy',
+    },
   });
 
   const ecosolar = await prisma.company.upsert({
     where: { slug: 'ecosolar-panama' },
-    update: {},
-    create: { name: 'EcoSolar Panamá', slug: 'ecosolar-panama' },
+    update: { primaryColor: '#0ea5e9', logoUrl: 'https://placehold.co/240x72/0ea5e9/white?text=EcoSolar' },
+    create: {
+      name: 'EcoSolar Panamá',
+      slug: 'ecosolar-panama',
+      primaryColor: '#0ea5e9',
+      logoUrl: 'https://placehold.co/240x72/0ea5e9/white?text=EcoSolar',
+    },
   });
 
   // Usuarios con empresa

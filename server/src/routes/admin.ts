@@ -13,7 +13,9 @@ router.use(requireAdmin);
 const ROLES = ['admin', 'user'] as const;
 type Role = (typeof ROLES)[number];
 
-const COMPANY_SELECT = { id: true, name: true, slug: true } as const;
+const COMPANY_SELECT = { id: true, name: true, slug: true, primaryColor: true, logoUrl: true } as const;
+
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
 // Valida rol + empresa antes de crear/editar un usuario.
 // Admins son globales (sin empresa); los users deben tener una.
@@ -187,6 +189,8 @@ router.get('/companies', async (_req: AuthRequest, res: Response) => {
       id: c.id,
       name: c.name,
       slug: c.slug,
+      primaryColor: c.primaryColor,
+      logoUrl: c.logoUrl,
       createdAt: c.createdAt,
       leadCount: c._count.leads,
       userCount: c._count.users,
@@ -198,11 +202,30 @@ router.get('/companies', async (_req: AuthRequest, res: Response) => {
 
 router.post('/companies', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, slug } = req.body as { name?: string; slug?: string };
+    const { name, slug, primaryColor, logoUrl } = req.body as {
+      name?: string;
+      slug?: string;
+      primaryColor?: string;
+      logoUrl?: string;
+    };
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       res.status(400).json({ error: 'El nombre es requerido' });
       return;
+    }
+
+    let finalPrimaryColor: string | null = null;
+    if (primaryColor !== undefined && primaryColor !== null && typeof primaryColor === 'string' && primaryColor.trim()) {
+      if (!HEX_COLOR_REGEX.test(primaryColor.trim())) {
+        res.status(400).json({ error: 'Color inválido (formato #RRGGBB)' });
+        return;
+      }
+      finalPrimaryColor = primaryColor.trim();
+    }
+
+    let finalLogoUrl: string | null = null;
+    if (logoUrl && typeof logoUrl === 'string' && logoUrl.trim()) {
+      finalLogoUrl = logoUrl.trim().slice(0, 500);
     }
 
     let finalSlug: string;
@@ -229,10 +252,22 @@ router.post('/companies', async (req: AuthRequest, res: Response) => {
     }
 
     const company = await prisma.company.create({
-      data: { name: name.trim(), slug: finalSlug },
+      data: {
+        name: name.trim(),
+        slug: finalSlug,
+        primaryColor: finalPrimaryColor,
+        logoUrl: finalLogoUrl,
+      },
     });
 
-    res.status(201).json({ id: company.id, name: company.name, slug: company.slug, createdAt: company.createdAt });
+    res.status(201).json({
+      id: company.id,
+      name: company.name,
+      slug: company.slug,
+      primaryColor: company.primaryColor,
+      logoUrl: company.logoUrl,
+      createdAt: company.createdAt,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear empresa' });
   }
@@ -241,7 +276,12 @@ router.post('/companies', async (req: AuthRequest, res: Response) => {
 router.put('/companies/:id', async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { name, slug } = req.body as { name?: string; slug?: string };
+    const { name, slug, primaryColor, logoUrl } = req.body as {
+      name?: string;
+      slug?: string;
+      primaryColor?: string;
+      logoUrl?: string;
+    };
 
     const existing = await prisma.company.findUnique({ where: { id } });
     if (!existing) {
@@ -249,7 +289,7 @@ router.put('/companies/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const data: Record<string, string> = {};
+    const data: Record<string, string | null> = {};
     if (name !== undefined && typeof name === 'string' && name.trim()) {
       data.name = name.trim();
     }
@@ -265,9 +305,34 @@ router.put('/companies/:id', async (req: AuthRequest, res: Response) => {
       }
       data.slug = slug.trim();
     }
+    if (primaryColor !== undefined && primaryColor !== null) {
+      if (typeof primaryColor !== 'string' || !primaryColor.trim()) {
+        data.primaryColor = null;
+      } else {
+        const color = primaryColor.trim();
+        if (!HEX_COLOR_REGEX.test(color)) {
+          res.status(400).json({ error: 'Color inválido (formato #RRGGBB)' });
+          return;
+        }
+        data.primaryColor = color;
+      }
+    }
+    if (logoUrl !== undefined && logoUrl !== null) {
+      if (typeof logoUrl !== 'string' || !logoUrl.trim()) {
+        data.logoUrl = null;
+      } else {
+        data.logoUrl = logoUrl.trim().slice(0, 500);
+      }
+    }
 
     const company = await prisma.company.update({ where: { id }, data });
-    res.json({ id: company.id, name: company.name, slug: company.slug });
+    res.json({
+      id: company.id,
+      name: company.name,
+      slug: company.slug,
+      primaryColor: company.primaryColor,
+      logoUrl: company.logoUrl,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar empresa' });
   }

@@ -22,7 +22,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export default function DashboardPage() {
   if (!stats) return null;
 
   const cards = [
-    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-blue-600', bg: 'bg-brand/10' },
     { label: 'Nuevos esta semana', value: stats.newThisWeek, icon: UserPlus, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Tasa de conversión', value: `${stats.conversionRate}%`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Crecimiento', value: `${stats.growthPercent}%`, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },

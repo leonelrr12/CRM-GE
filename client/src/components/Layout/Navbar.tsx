@@ -7,9 +7,19 @@ export default function Navbar() {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">CRM</span>
-        </div>
+        {user?.company?.logoUrl ? (
+          <img
+            src={user.company.logoUrl}
+            alt={user.company.name}
+            className="h-8 object-contain"
+            referrerPolicy="no-referrer"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">CRM</span>
+          </div>
+        )}
         <h1 className="text-xl font-bold text-gray-900">CRM-GE</h1>
       </div>
 
@@ -21,7 +31,7 @@ export default function Navbar() {
             <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{user.company.name}</span>
           )}
           {user?.role === 'admin' && (
-            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">admin</span>
+            <span className="bg-brand/10 text-brand text-xs px-2 py-0.5 rounded-full">admin</span>
           )}
         </div>
         <button

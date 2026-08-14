@@ -34,6 +34,9 @@ export default function PublicFormPage() {
     }
   };
 
+  // Marca de la empresa: sin branding (NULL) → verde, el look histórico del formulario.
+  const brandStyle = { ['--brand' as string]: company?.primaryColor ?? '#16a34a' } as React.CSSProperties;
+
   if (notFound || (!company && slug)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
@@ -50,9 +53,9 @@ export default function PublicFormPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
+      <div style={brandStyle} className="min-h-screen bg-gradient-to-br from-brand/10 to-brand/5 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-brand/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">✅</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Gracias por tu interés!</h1>
@@ -65,9 +68,18 @@ export default function PublicFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+    <div style={brandStyle} className="min-h-screen bg-gradient-to-br from-brand/10 to-brand/5 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
         <div className="text-center mb-6">
+          {company?.logoUrl && (
+            <img
+              src={company.logoUrl}
+              alt={company.name}
+              className="mx-auto h-14 object-contain mb-3"
+              referrerPolicy="no-referrer"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
           {company && <h1 className="text-xl font-bold text-gray-900">{company.name}</h1>}
           <p className="text-gray-500 mt-1">Solicitar información</p>
         </div>
@@ -86,7 +98,7 @@ export default function PublicFormPage() {
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                 required
                 placeholder="Tu nombre"
               />
@@ -97,7 +109,7 @@ export default function PublicFormPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                 placeholder="tu@email.com"
               />
             </div>
@@ -107,7 +119,7 @@ export default function PublicFormPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                 required
                 placeholder="+507 6000-0000"
               />
@@ -117,7 +129,7 @@ export default function PublicFormPage() {
               <select
                 value={form.serviceInterest}
                 onChange={(e) => setForm({ ...form, serviceInterest: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
               >
                 <option value="">Selecciona...</option>
                 <option value="paneles residenciales">Paneles Residenciales</option>
@@ -133,7 +145,7 @@ export default function PublicFormPage() {
                 type="text"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                 placeholder="Ciudad"
               />
             </div>
@@ -143,7 +155,7 @@ export default function PublicFormPage() {
             <select
               value={form.source}
               onChange={(e) => setForm({ ...form, source: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none"
             >
               {SOURCES.filter(s => s.value !== 'whatsapp').map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -156,13 +168,13 @@ export default function PublicFormPage() {
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-brand outline-none resize-none"
               placeholder="Cuéntanos qué necesitas..."
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors cursor-pointer"
+            className="w-full bg-brand text-white py-2.5 rounded-lg font-medium hover:brightness-95 transition-colors cursor-pointer"
           >
             Solicitar información
           </button>

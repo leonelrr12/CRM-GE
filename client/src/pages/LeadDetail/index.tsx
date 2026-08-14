@@ -68,7 +68,7 @@ export default function LeadDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
@@ -101,41 +101,41 @@ export default function LeadDetailPage() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Nombre</label>
-                <input type="text" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Email</label>
-                <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Teléfono de contacto</label>
-                <input type="tel" value={editForm.contactPhone || ''} onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="tel" value={editForm.contactPhone || ''} onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Teléfono (ID WhatsApp)</label>
-                <input type="tel" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="tel" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Servicio de interés</label>
-                <input type="text" value={editForm.serviceInterest || ''} onChange={(e) => setEditForm({ ...editForm, serviceInterest: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" value={editForm.serviceInterest || ''} onChange={(e) => setEditForm({ ...editForm, serviceInterest: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Ciudad / Ubicación</label>
-                <input type="text" value={editForm.city || ''} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" value={editForm.city || ''} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Presupuesto / Consumo</label>
-                <input type="text" value={editForm.budget || ''} onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" value={editForm.budget || ''} onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Fuente</label>
-                <select value={editForm.source || 'web'} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <select value={editForm.source || 'web'} onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand">
                   {SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Estado</label>
-                <select value={editForm.status || 'nuevo'} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as LeadStatus })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <select value={editForm.status || 'nuevo'} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as LeadStatus })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand">
                   {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -143,7 +143,7 @@ export default function LeadDetailPage() {
 
             <div className="mb-4">
               <label className="block text-xs text-gray-500 mb-1">Notas</label>
-              <textarea value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              <textarea value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand resize-none" />
             </div>
 
             {editForm.receiptImage && (
@@ -168,7 +168,7 @@ export default function LeadDetailPage() {
               </div>
             )}
 
-            <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+            <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
               <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
@@ -176,7 +176,7 @@ export default function LeadDetailPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
-              <button onClick={() => setShowActivityForm(!showActivityForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 cursor-pointer">
+              <button onClick={() => setShowActivityForm(!showActivityForm)} className="flex items-center gap-1 px-3 py-1.5 bg-brand/10 text-blue-600 rounded-lg text-sm hover:bg-brand/20 cursor-pointer">
                 <MessageSquarePlus size={16} /> Agregar
               </button>
             </div>
@@ -186,10 +186,10 @@ export default function LeadDetailPage() {
                 <select value={newActivity.type} onChange={(e) => setNewActivity({ ...newActivity, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
                   {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
                 </select>
-                <textarea value={newActivity.description} onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })} placeholder="Descripción de la actividad..." rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                <textarea value={newActivity.description} onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })} placeholder="Descripción de la actividad..." rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand resize-none" />
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowActivityForm(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-100 cursor-pointer">Cancelar</button>
-                  <button type="submit" className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer">Guardar</button>
+                  <button type="submit" className="flex-1 py-1.5 bg-brand text-white rounded-lg text-xs hover:brightness-95 cursor-pointer">Guardar</button>
                 </div>
               </form>
             )}

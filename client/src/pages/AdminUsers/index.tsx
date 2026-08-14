@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Admin - Usuarios</h1>
-        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 cursor-pointer">
+        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
           <Plus size={16} /> Nuevo Usuario
         </button>
       </div>
@@ -97,14 +97,14 @@ export default function AdminUsersPage() {
             placeholder="Buscar usuarios..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none"
           />
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -145,7 +145,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => openEdit(user)} className="p-1.5 text-gray-400 hover:text-blue-600 cursor-pointer" title="Editar">
+                        <button onClick={() => openEdit(user)} className="p-1.5 text-gray-400 hover:text-brand cursor-pointer" title="Editar">
                           <Pencil size={16} />
                         </button>
                         <button onClick={() => handleDelete(user.id, user.name)} className="p-1.5 text-gray-400 hover:text-red-600 cursor-pointer" title="Eliminar">
@@ -173,7 +173,7 @@ export default function AdminUsersPage() {
                 placeholder="Nombre *"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                 required
               />
               <input
@@ -181,7 +181,7 @@ export default function AdminUsersPage() {
                 placeholder="Email *"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                 required
               />
               <input
@@ -189,13 +189,13 @@ export default function AdminUsersPage() {
                 placeholder={editingId ? 'Nueva contraseña (dejar vacío para mantener)' : 'Contraseña *'}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                 required={!editingId}
               />
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value, companyId: e.target.value === 'admin' ? '' : form.companyId })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
               >
                 <option value="user">Usuario</option>
                 <option value="admin">Admin (global)</option>
@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
                 <select
                   value={form.companyId}
                   onChange={(e) => setForm({ ...form, companyId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                   required
                 >
                   <option value="">Selecciona empresa...</option>
@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
                   Cancelar
                 </button>
-                <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 cursor-pointer">
+                <button type="submit" className="flex-1 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
                   {editingId ? 'Guardar Cambios' : 'Crear Usuario'}
                 </button>
               </div>

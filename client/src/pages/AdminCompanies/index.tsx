@@ -6,9 +6,11 @@ import type { Company } from '../../types';
 interface CompanyForm {
   name: string;
   slug: string;
+  primaryColor: string;
+  logoUrl: string;
 }
 
-const emptyForm: CompanyForm = { name: '', slug: '' };
+const emptyForm: CompanyForm = { name: '', slug: '', primaryColor: '#16a34a', logoUrl: '' };
 
 export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -39,7 +41,13 @@ export default function AdminCompaniesPage() {
 
   const openEdit = (company: Company) => {
     setEditingId(company.id);
-    setForm({ name: company.name, slug: company.slug });
+    // El <input type="color"> exige #rrggbb; sin branding → el verde del formulario.
+    setForm({
+      name: company.name,
+      slug: company.slug,
+      primaryColor: company.primaryColor ?? '#16a34a',
+      logoUrl: company.logoUrl ?? '',
+    });
     setError('');
     setShowForm(true);
   };
@@ -83,7 +91,7 @@ export default function AdminCompaniesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Admin - Empresas</h1>
-        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 cursor-pointer">
+        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
           <Plus size={16} /> Nueva Empresa
         </button>
       </div>
@@ -96,14 +104,14 @@ export default function AdminCompaniesPage() {
             placeholder="Buscar empresas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand outline-none"
           />
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -111,6 +119,7 @@ export default function AdminCompaniesPage() {
             <thead>
               <tr className="text-left text-gray-500 bg-gray-50 border-b">
                 <th className="px-4 py-3 font-medium">Nombre</th>
+                <th className="px-4 py-3 font-medium">Marca</th>
                 <th className="px-4 py-3 font-medium">Slug</th>
                 <th className="px-4 py-3 font-medium">Leads</th>
                 <th className="px-4 py-3 font-medium">Usuarios</th>
@@ -121,7 +130,7 @@ export default function AdminCompaniesPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                     No se encontraron empresas
                   </td>
                 </tr>
@@ -132,6 +141,24 @@ export default function AdminCompaniesPage() {
                       <span className="inline-flex items-center gap-2">
                         <Building2 size={16} className="text-gray-400" />
                         {company.name}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="inline-block w-4 h-4 rounded-full border border-gray-200"
+                          style={{ backgroundColor: company.primaryColor ?? '#16a34a' }}
+                          title={company.primaryColor ?? '#16a34a'}
+                        />
+                        {company.logoUrl && (
+                          <img
+                            src={company.logoUrl}
+                            alt="logo"
+                            className="h-6 object-contain"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -146,7 +173,7 @@ export default function AdminCompaniesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => openEdit(company)} className="p-1.5 text-gray-400 hover:text-blue-600 cursor-pointer" title="Editar">
+                        <button onClick={() => openEdit(company)} className="p-1.5 text-gray-400 hover:text-brand cursor-pointer" title="Editar">
                           <Pencil size={16} />
                         </button>
                         <button onClick={() => handleDelete(company)} className="p-1.5 text-gray-400 hover:text-red-600 cursor-pointer" title="Eliminar">
@@ -179,7 +206,7 @@ export default function AdminCompaniesPage() {
                 placeholder="Nombre *"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                 required
               />
               <div>
@@ -188,17 +215,51 @@ export default function AdminCompaniesPage() {
                   placeholder={editingId ? 'Slug (URL de captación)' : 'Slug (vacío = se genera del nombre)'}
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
                 />
                 {form.slug && (
                   <p className="text-xs text-gray-400 mt-1">URL: /captacion/{form.slug}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Color principal</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={form.primaryColor}
+                      onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
+                      className="w-10 h-9 rounded cursor-pointer border border-gray-300"
+                      title="Color del formulario y del CRM"
+                    />
+                    <span className="text-xs text-gray-400 font-mono">{form.primaryColor}</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">Logo (URL)</label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={form.logoUrl}
+                    onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </div>
+                {form.logoUrl && (
+                  <img
+                    src={form.logoUrl}
+                    alt="preview"
+                    className="h-9 object-contain self-end"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                 )}
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
                   Cancelar
                 </button>
-                <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 cursor-pointer">
+                <button type="submit" className="flex-1 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
                   {editingId ? 'Guardar Cambios' : 'Crear Empresa'}
                 </button>
               </div>

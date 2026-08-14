@@ -25,7 +25,7 @@ function DroppableColumn({ status, children }: { status: LeadStatus; children: R
   return (
     <div
       ref={setNodeRef}
-      className={`bg-gray-50 rounded-xl p-3 min-h-[200px] transition-colors ${isOver ? 'ring-2 ring-blue-400 bg-blue-50' : ''}`}
+      className={`bg-gray-50 rounded-xl p-3 min-h-[200px] transition-colors ${isOver ? 'ring-2 ring-blue-400 bg-brand/10' : ''}`}
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function PipelinePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }

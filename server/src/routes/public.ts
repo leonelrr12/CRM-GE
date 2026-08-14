@@ -87,7 +87,7 @@ router.get('/company/:slug', async (req: Request, res: Response) => {
 
     const company = await prisma.company.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, primaryColor: true, logoUrl: true },
     });
 
     if (!company) {
@@ -95,7 +95,14 @@ router.get('/company/:slug', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(company);
+    // Sin branding configurado (NULL) → verde, el look histórico del formulario.
+    res.json({
+      id: company.id,
+      name: company.name,
+      slug: company.slug,
+      primaryColor: company.primaryColor ?? '#16a34a',
+      logoUrl: company.logoUrl,
+    });
   } catch (error) {
     console.error('Error al obtener empresa:', error);
     res.status(500).json({ error: 'Error al obtener empresa' });

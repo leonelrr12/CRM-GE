@@ -2,6 +2,8 @@ export interface Company {
   id: string;
   name: string;
   slug: string;
+  primaryColor?: string | null;
+  logoUrl?: string | null;
   createdAt?: string;
   leadCount?: number;
   userCount?: number;

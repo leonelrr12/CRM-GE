@@ -25,7 +25,7 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-brand text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`
             }
@@ -44,7 +44,7 @@ export default function Sidebar() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 }`
               }
@@ -57,7 +57,7 @@ export default function Sidebar() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 }`
               }

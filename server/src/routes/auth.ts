@@ -10,6 +10,8 @@ const COMPANY_SELECT = {
   id: true,
   name: true,
   slug: true,
+  primaryColor: true,
+  logoUrl: true,
 } as const;
 
 router.post('/login', async (req: AuthRequest, res: Response) => {

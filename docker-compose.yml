@@ -1,16 +1,57 @@
+# Stack real de producción (Contabo VPS). Postgres es externo (crmge-db).
+#   - api:    backend; la imagen se construye desde ./server con dist/ y
+#             node_modules ya preparados en el host (ver deploy.sh).
+#   - mailer: microservicio de correo; el contexto ./mailer se llena desde el
+#             repo hermano mailerApi (rsync en deploy.sh). Comparte la red
+#             crmge-net para que api lo alcance como "mailer-api:3004".
+#   - BD:     crmge-db, en la red externa accion-comunitaria_default.
+#             DATABASE_URL es la de producción; el server/.env local
+#             (gitignored) puede apuntar a tu BD de desarrollo.
 services:
-  postgres:
-    image: postgres:16
-    container_name: crmge-postgres
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: crmge-api
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: crmge
-      POSTGRES_USER: crmge_user
-      POSTGRES_PASSWORD: crmge_password
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - '5432:5432'
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "127.0.0.1:3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - DATABASE_URL=postgresql://postgres:admin1204@crmge-db:5432/crmge?schema=public
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - accion-comunitaria_default
+      - crmge-net
 
-volumes:
-  pgdata:
+  mailer:
+    build:
+      context: ./mailer
+      dockerfile: Dockerfile
+    container_name: mailer-api
+    restart: unless-stopped
+    env_file: ./mailer/.env
+    ports:
+      - "127.0.0.1:3004:3004"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - crmge-net
+
+networks:
+  accion-comunitaria_default:
+    external: true
+  crmge-net:
+    driver: bridge

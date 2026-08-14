@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { SOURCES } from '../../types';
+import type { Company } from '../../types';
 
 export default function PublicFormPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [company, setCompany] = useState<Company | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState({
     name: '', email: '', phone: '',
     serviceInterest: '', city: '',
@@ -11,16 +16,37 @@ export default function PublicFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!slug) return;
+    api.get(`/public/company/${slug}`)
+      .then((res) => setCompany(res.data))
+      .catch(() => setNotFound(true));
+  }, [slug]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/public/lead', form);
+      await api.post('/public/lead', { ...form, slug });
       setSubmitted(true);
     } catch {
       setError('Error al enviar el formulario. Intenta de nuevo.');
     }
   };
+
+  if (notFound || (!company && slug)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">🔍</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Empresa no encontrada</h1>
+          <p className="text-gray-500">El enlace que seguiste no es válido. Verifica la URL o contacta directamente con el negocio.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -30,8 +56,9 @@ export default function PublicFormPage() {
             <span className="text-3xl">✅</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Gracias por tu interés!</h1>
-          <p className="text-gray-500">Hemos recibido tu información. Un asesor te contactará en las próximas horas.</p>
-          <p className="text-gray-400 text-sm mt-4">Mientras tanto, visita <span className="text-blue-600">greenenergytechnologie.com</span></p>
+          <p className="text-gray-500">
+            Hemos recibido tu información{company ? ` en ${company.name}` : ''}. Un asesor te contactará en las próximas horas.
+          </p>
         </div>
       </div>
     );
@@ -41,6 +68,7 @@ export default function PublicFormPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
         <div className="text-center mb-6">
+          {company && <h1 className="text-xl font-bold text-gray-900">{company.name}</h1>}
           <p className="text-gray-500 mt-1">Solicitar información</p>
         </div>
 

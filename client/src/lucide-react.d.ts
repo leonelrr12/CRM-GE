@@ -20,6 +20,7 @@ declare module 'lucide-react' {
   export const User: Icon;
   export const LayoutDashboard: Icon;
   export const Users: Icon;
+  export const Building2: Icon;
   export const TrendingUp: Icon;
   export const UserPlus: Icon;
   export const Activity: Icon;

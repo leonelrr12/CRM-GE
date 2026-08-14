@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, Filter } from 'lucide-react';
 import api from '../../services/api';
-import type { Lead } from '../../types';
+import type { Lead, Company } from '../../types';
 import { SOURCES, STATUSES } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 function sourceLabel(source: string) {
   const found = SOURCES.find((s) => s.value === source);
@@ -21,8 +22,11 @@ export default function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState('todas');
   const [statusFilter, setStatusFilter] = useState('todas');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', source: 'web', notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', source: 'web', notes: '', companyId: '' });
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -40,11 +44,26 @@ export default function LeadsPage() {
     fetchLeads();
   }, [fetchLeads]);
 
+  // El admin (global) elige la empresa al crear leads; el user usa la suya
+  useEffect(() => {
+    if (isAdmin) {
+      api.get('/admin/companies').then((res) => setCompanies(res.data));
+    }
+  }, [isAdmin]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.post('/leads', form);
+    const payload: Record<string, string> = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      source: form.source,
+      notes: form.notes,
+    };
+    if (isAdmin) payload.companyId = form.companyId;
+    await api.post('/leads', payload);
     setShowForm(false);
-    setForm({ name: '', email: '', phone: '', source: 'web', notes: '' });
+    setForm({ name: '', email: '', phone: '', source: 'web', notes: '', companyId: '' });
     fetchLeads();
   };
 
@@ -171,6 +190,12 @@ export default function LeadsPage() {
               <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
                 {SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
+              {isAdmin && (
+                <select value={form.companyId} onChange={(e) => setForm({ ...form, companyId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" required>
+                  <option value="">Selecciona empresa...</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              )}
               <textarea placeholder="Notas" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>

@@ -17,6 +17,9 @@ export default function Navbar() {
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <User size={18} />
           <span>{user?.name}</span>
+          {user?.company && (
+            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{user.company.name}</span>
+          )}
           {user?.role === 'admin' && (
             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">admin</span>
           )}

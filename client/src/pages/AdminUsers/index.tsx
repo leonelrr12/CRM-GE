@@ -1,19 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Shield, ShieldOff, Search } from 'lucide-react';
 import api from '../../services/api';
-import type { User } from '../../types';
+import type { User, Company } from '../../types';
 
 interface UserForm {
   name: string;
   email: string;
   password: string;
   role: string;
+  companyId: string;
 }
 
-const emptyForm: UserForm = { name: '', email: '', password: '', role: 'user' };
+const emptyForm: UserForm = { name: '', email: '', password: '', role: 'user', companyId: '' };
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -22,8 +24,12 @@ export default function AdminUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const res = await api.get('/admin/users');
-    setUsers(res.data);
+    const [usersRes, companiesRes] = await Promise.all([
+      api.get('/admin/users'),
+      api.get('/admin/companies'),
+    ]);
+    setUsers(usersRes.data);
+    setCompanies(companiesRes.data);
     setLoading(false);
   }, []);
 
@@ -39,18 +45,23 @@ export default function AdminUsersPage() {
 
   const openEdit = (user: User) => {
     setEditingId(user.id);
-    setForm({ name: user.name, email: user.email, password: '', role: user.role });
+    setForm({ name: user.name, email: user.email, password: '', role: user.role, companyId: user.companyId ?? '' });
     setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload: Record<string, string | null> = {
+      name: form.name,
+      email: form.email,
+      role: form.role,
+      companyId: form.role === 'admin' ? null : form.companyId,
+    };
+    if (form.password) payload.password = form.password;
     if (editingId) {
-      const payload: Record<string, string> = { name: form.name, email: form.email, role: form.role };
-      if (form.password) payload.password = form.password;
       await api.put(`/admin/users/${editingId}`, payload);
     } else {
-      await api.post('/admin/users', form);
+      await api.post('/admin/users', payload);
     }
     setShowForm(false);
     setForm(emptyForm);
@@ -103,6 +114,7 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
+                <th className="px-4 py-3 font-medium">Empresa</th>
                 <th className="px-4 py-3 font-medium">Creado</th>
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
@@ -110,7 +122,7 @@ export default function AdminUsersPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                     No se encontraron usuarios
                   </td>
                 </tr>
@@ -129,6 +141,7 @@ export default function AdminUsersPage() {
                         {user.role === 'admin' ? 'Admin' : 'Usuario'}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-gray-500">{user.company?.name ?? 'Global'}</td>
                     <td className="px-4 py-3 text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 justify-end">
@@ -181,12 +194,25 @@ export default function AdminUsersPage() {
               />
               <select
                 value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                onChange={(e) => setForm({ ...form, role: e.target.value, companyId: e.target.value === 'admin' ? '' : form.companyId })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="user">Usuario</option>
-                <option value="admin">Admin</option>
+                <option value="admin">Admin (global)</option>
               </select>
+              {form.role === 'user' && (
+                <select
+                  value={form.companyId}
+                  onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Selecciona empresa...</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
                   Cancelar

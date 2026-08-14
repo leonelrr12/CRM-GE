@@ -20,6 +20,8 @@ export { JWT_SECRET };
 
 export interface AuthRequest extends Request {
   userId?: string;
+  userRole?: string;
+  companyId?: string | null;
 }
 
 export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction): void {

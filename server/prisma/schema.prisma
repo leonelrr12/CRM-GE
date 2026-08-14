@@ -7,15 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String     @id @default(uuid())
+model Company {
+  id        String   @id @default(uuid())
   name      String
-  email     String     @unique
-  password  String
-  role      String     @default("user")
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
+  leads     Lead[]
 
+  @@map("companies")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("user")
+  companyId String?   @map("company_id")
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([companyId])
   @@map("users")
 }
 
@@ -34,8 +49,11 @@ model Lead {
   notes           String?
   createdAt       DateTime   @default(now()) @map("created_at")
   updatedAt       DateTime   @updatedAt @map("updated_at")
+  companyId       String     @map("company_id")
+  company         Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
   activities      Activity[]
 
+  @@index([companyId])
   @@map("leads")
 }
 

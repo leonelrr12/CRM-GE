@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Columns2, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Columns2, Shield, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Sidebar() {
@@ -51,6 +51,19 @@ export default function Sidebar() {
             >
               <Shield size={18} />
               Usuarios
+            </NavLink>
+            <NavLink
+              to="/admin/companies"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`
+              }
+            >
+              <Building2 size={18} />
+              Empresas
             </NavLink>
           </>
         )}

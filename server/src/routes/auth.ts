@@ -6,48 +6,11 @@ import prisma from '../lib/prisma';
 
 const router = Router();
 
-router.post('/register', async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, email, password } = req.body;
-
-    // Validación de entrada
-    if (!name || !email || !password) {
-      res.status(400).json({ error: 'Todos los campos son requeridos' });
-      return;
-    }
-
-    if (!email.includes('@')) {
-      res.status(400).json({ error: 'Email inválido' });
-      return;
-    }
-
-    if (password.length < 6) {
-      res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-      return;
-    }
-
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      res.status(400).json({ error: 'El email ya está registrado' });
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
-    });
-
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({
-      token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-    });
-  } catch (error) {
-    console.error('Error en registro:', error);
-    res.status(500).json({ error: 'Error al registrar usuario' });
-  }
-});
+const COMPANY_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+} as const;
 
 router.post('/login', async (req: AuthRequest, res: Response) => {
   try {
@@ -58,7 +21,10 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { company: { select: COMPANY_SELECT } },
+    });
     if (!user) {
       // Respuesta genérica para evitar enumeración de usuarios
       res.status(401).json({ error: 'Credenciales inválidas' });
@@ -76,7 +42,14 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        company: user.company,
+      },
     });
   } catch (error) {
     console.error('Error en login:', error);
@@ -88,7 +61,14 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, name: true, email: true, role: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        companyId: true,
+        company: { select: COMPANY_SELECT },
+      },
     });
 
     if (!user) {

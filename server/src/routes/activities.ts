@@ -1,16 +1,26 @@
 import { Router, Response } from 'express';
-import { Prisma } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { resolveCompany } from '../middleware/company';
+import { scopedWhere } from '../lib/scoping';
 import prisma from '../lib/prisma';
 
 const router = Router();
-router.use(authenticateToken);
+router.use(authenticateToken, resolveCompany);
 
 const ACTIVITY_TYPES = ['llamada', 'email', 'reunion', 'nota'] as const;
 type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 router.get('/lead/:leadId', async (req: AuthRequest, res: Response) => {
   try {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.leadId as string, ...scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!lead) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+
     const activities = await prisma.activity.findMany({
       where: { leadId: req.params.leadId as string },
       orderBy: { createdAt: 'desc' },
@@ -42,6 +52,15 @@ router.post('/lead/:leadId', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.leadId as string, ...scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!lead) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+
     const activity = await prisma.activity.create({
       data: {
         leadId: req.params.leadId as string,
@@ -59,7 +78,16 @@ router.post('/lead/:leadId', async (req: AuthRequest, res: Response) => {
 
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.activity.delete({ where: { id: req.params.id as string } });
+    const activity = await prisma.activity.findFirst({
+      where: { id: req.params.id as string, lead: scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!activity) {
+      res.status(404).json({ error: 'Actividad no encontrada' });
+      return;
+    }
+
+    await prisma.activity.delete({ where: { id: activity.id } });
     res.json({ message: 'Actividad eliminada' });
   } catch (error) {
     console.error('Error al eliminar actividad:', error);

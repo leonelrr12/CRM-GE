@@ -1,8 +1,19 @@
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  leadCount?: number;
+  userCount?: number;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: string;
+  companyId?: string | null;
+  company?: Company | null;
   createdAt: string;
 }
 
@@ -19,6 +30,7 @@ export interface Lead {
   source: string;
   status: LeadStatus;
   notes: string | null;
+  companyId?: string;
   createdAt: string;
   updatedAt: string;
   activities?: Activity[];

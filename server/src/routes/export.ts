@@ -2,16 +2,22 @@ import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import ExcelJS from 'exceljs';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { resolveCompany } from '../middleware/company';
+import { scopedWhere } from '../lib/scoping';
 
 const router = Router();
 
-router.use(authenticateToken);
+router.use(authenticateToken, resolveCompany);
 
-router.get('/excel', async (_req: AuthRequest, res: Response) => {
+router.get('/excel', async (req: AuthRequest, res: Response) => {
   try {
     const leads = await prisma.lead.findMany({
+      where: scopedWhere(req),
       orderBy: { createdAt: 'desc' },
-      include: { activities: { orderBy: { createdAt: 'desc' } } },
+      include: {
+        activities: { orderBy: { createdAt: 'desc' } },
+        company: { select: { name: true } },
+      },
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -25,6 +31,7 @@ router.get('/excel', async (_req: AuthRequest, res: Response) => {
       { header: 'Estado', key: 'status', width: 15 },
       { header: 'Notas', key: 'notes', width: 40 },
       { header: 'Actividades', key: 'activities', width: 50 },
+      { header: 'Empresa', key: 'company', width: 25 },
       { header: 'Fecha creación', key: 'createdAt', width: 20 },
     ];
 
@@ -46,6 +53,7 @@ router.get('/excel', async (_req: AuthRequest, res: Response) => {
         status: lead.status,
         notes: lead.notes || '',
         activities: lead.activities.map((a) => `[${a.type}] ${a.description}`).join(' | '),
+        company: lead.company?.name || '',
         createdAt: lead.createdAt.toISOString().split('T')[0],
       });
     });
@@ -60,14 +68,18 @@ router.get('/excel', async (_req: AuthRequest, res: Response) => {
   }
 });
 
-router.get('/csv', async (_req: AuthRequest, res: Response) => {
+router.get('/csv', async (req: AuthRequest, res: Response) => {
   try {
     const leads = await prisma.lead.findMany({
+      where: scopedWhere(req),
       orderBy: { createdAt: 'desc' },
-      include: { activities: { orderBy: { createdAt: 'desc' } } },
+      include: {
+        activities: { orderBy: { createdAt: 'desc' } },
+        company: { select: { name: true } },
+      },
     });
 
-    const headers = ['Nombre', 'Email', 'Teléfono', 'Fuente', 'Estado', 'Notas', 'Actividades', 'Fecha creación'];
+    const headers = ['Nombre', 'Email', 'Teléfono', 'Fuente', 'Estado', 'Notas', 'Actividades', 'Empresa', 'Fecha creación'];
     const rows = leads.map((lead) => [
       lead.name,
       lead.email || '',
@@ -76,6 +88,7 @@ router.get('/csv', async (_req: AuthRequest, res: Response) => {
       lead.status,
       (lead.notes || '').replace(/,/g, ';'),
       lead.activities.map((a) => `[${a.type}] ${a.description}`).join(' | ').replace(/,/g, ';'),
+      lead.company?.name || '',
       lead.createdAt.toISOString().split('T')[0],
     ]);
 

@@ -1,22 +1,28 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { resolveCompany } from '../middleware/company';
+import { scopedWhere } from '../lib/scoping';
 
 const router = Router();
 
-router.use(authenticateToken);
+router.use(authenticateToken, resolveCompany);
 
-router.get('/stats', async (_req: AuthRequest, res: Response) => {
+router.get('/stats', async (req: AuthRequest, res: Response) => {
   try {
-    const totalLeads = await prisma.lead.count();
+    const where = scopedWhere(req);
+
+    const totalLeads = await prisma.lead.count({ where });
 
     const bySource = await prisma.lead.groupBy({
       by: ['source'],
+      where,
       _count: { id: true },
     });
 
     const byStatus = await prisma.lead.groupBy({
       by: ['status'],
+      where,
       _count: { id: true },
     });
 
@@ -28,7 +34,7 @@ router.get('/stats', async (_req: AuthRequest, res: Response) => {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const newThisWeek = await prisma.lead.count({
-      where: { createdAt: { gte: oneWeekAgo } },
+      where: { ...where, createdAt: { gte: oneWeekAgo } },
     });
 
     const lastWeekAgo = new Date();
@@ -36,11 +42,13 @@ router.get('/stats', async (_req: AuthRequest, res: Response) => {
 
     const newLastWeek = await prisma.lead.count({
       where: {
+        ...where,
         createdAt: { gte: lastWeekAgo, lt: oneWeekAgo },
       },
     });
 
     const recentLeads = await prisma.lead.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, name: true, source: true, status: true, createdAt: true },

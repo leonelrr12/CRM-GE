@@ -1,10 +1,12 @@
 import { Router, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { resolveCompany } from '../middleware/company';
+import { scopedWhere } from '../lib/scoping';
 import prisma from '../lib/prisma';
 
 const router = Router();
-router.use(authenticateToken);
+router.use(authenticateToken, resolveCompany);
 
 const LEAD_STATUSES = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'] as const;
 type LeadStatus = (typeof LEAD_STATUSES)[number];
@@ -30,7 +32,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
 
     const leads = await prisma.lead.findMany({
-      where,
+      where: scopedWhere(req, where),
       orderBy: { createdAt: 'desc' },
       include: { activities: { orderBy: { createdAt: 'desc' }, take: 5 } },
     });
@@ -44,8 +46,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const lead = await prisma.lead.findUnique({
-      where: { id: req.params.id as string },
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
       include: { activities: { orderBy: { createdAt: 'desc' } } },
     });
 
@@ -76,6 +78,27 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    // El admin (sin empresa) debe indicar la empresa; el user usa la suya
+    let companyId: string | null = req.companyId ?? null;
+    if (req.userRole === 'admin') {
+      const { companyId: bodyCompanyId } = req.body as { companyId?: string };
+      if (!bodyCompanyId) {
+        res.status(400).json({ error: 'El campo companyId es requerido' });
+        return;
+      }
+      const company = await prisma.company.findUnique({ where: { id: bodyCompanyId } });
+      if (!company) {
+        res.status(400).json({ error: 'Empresa no encontrada' });
+        return;
+      }
+      companyId = company.id;
+    }
+
+    if (!companyId) {
+      res.status(400).json({ error: 'Usuario sin empresa asignada' });
+      return;
+    }
+
     const lead = await prisma.lead.create({
       data: {
         name,
@@ -89,6 +112,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         source: source || 'web',
         status: status || 'nuevo',
         notes: notes || null,
+        companyId,
       },
       include: { activities: true },
     });
@@ -107,6 +131,15 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     // Validar email si se proporciona
     if (email && !email.includes('@')) {
       res.status(400).json({ error: 'Email inválido' });
+      return;
+    }
+
+    const owned = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Lead no encontrado' });
       return;
     }
 
@@ -149,6 +182,15 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const owned = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+
     const lead = await prisma.lead.update({
       where: { id: req.params.id as string },
       data: { status: status as LeadStatus },
@@ -173,6 +215,15 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
+    const owned = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+      select: { id: true },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+
     await prisma.lead.delete({ where: { id: req.params.id as string } });
     res.json({ message: 'Lead eliminado' });
   } catch (error) {

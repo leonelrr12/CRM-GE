@@ -8,11 +8,11 @@ async function main() {
   const userPassword = await bcrypt.hash('usuario123', 10);
 
   await prisma.user.upsert({
-    where: { email: 'admin@crmge.com' },
+    where: { email: 'admin.crmge@gmail.com' },
     update: {},
     create: {
       name: 'Admin CRM',
-      email: 'admin@crmge.com',
+      email: 'admin.crmge@gmail.com',
       password: adminPassword,
       role: 'admin',
     },
@@ -33,11 +33,11 @@ async function main() {
 
   // Usuarios con empresa
   await prisma.user.upsert({
-    where: { email: 'usuario1@green.com' },
+    where: { email: 'usuario.green@gmail.com' },
     update: {},
     create: {
       name: 'Usuario Green',
-      email: 'usuario1@green.com',
+      email: 'usuario.green@gmail.com',
       password: userPassword,
       role: 'user',
       companyId: green.id,
@@ -45,11 +45,11 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { email: 'usuario2@ecosolar.com' },
+    where: { email: 'usuario.ecosolar@gmail.com' },
     update: {},
     create: {
       name: 'Usuario EcoSolar',
-      email: 'usuario2@ecosolar.com',
+      email: 'usuario.ecosolar@gmail.com',
       password: userPassword,
       role: 'user',
       companyId: ecosolar.id,

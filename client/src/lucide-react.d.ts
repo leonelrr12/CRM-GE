@@ -24,4 +24,7 @@ declare module 'lucide-react' {
   export const TrendingUp: Icon;
   export const UserPlus: Icon;
   export const Activity: Icon;
+  export const Clock: Icon;
+  export const Mail: Icon;
+  export const MessageCircle: Icon;
 }

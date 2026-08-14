@@ -232,4 +232,77 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Envío de correo al lead desde el CRM. El server llama directo al mailer
+// con la key del .env (misma cadena que el proxy público /api/public/send-mail).
+router.post('/:id/send-email', async (req: AuthRequest, res: Response) => {
+  try {
+    const { subject, message } = req.body as { subject?: string; message?: string };
+
+    if (!subject || typeof subject !== 'string' || !subject.trim()) {
+      res.status(400).json({ error: 'El asunto es requerido' });
+      return;
+    }
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      res.status(400).json({ error: 'El mensaje es requerido' });
+      return;
+    }
+    if (message.length > 4000) {
+      res.status(400).json({ error: 'Mensaje demasiado largo (máx 4000)' });
+      return;
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+    });
+    if (!lead) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+    if (!lead.email) {
+      res.status(400).json({ error: 'El lead no tiene email registrado' });
+      return;
+    }
+
+    const MAILER_URL = process.env.MAILER_URL || 'http://localhost:3004';
+    const MAILER_API_KEY = process.env.MAILER_API_KEY || '';
+
+    // Contenido del usuario escapado antes de ir al HTML del correo.
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const html =
+      `<p>Hola <strong>${escapeHtml(lead.name)}</strong>,</p>` +
+      `<p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>`;
+
+    const mailerRes = await fetch(`${MAILER_URL}/api/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${MAILER_API_KEY}`,
+      },
+      body: JSON.stringify({ to: lead.email, subject: subject.trim(), text: message, html }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!mailerRes.ok) {
+      console.error('Mailer rechazó el correo:', mailerRes.status);
+      res.status(502).json({ error: 'Error al enviar el correo' });
+      return;
+    }
+
+    // Bitácora en el lead
+    await prisma.activity.create({
+      data: {
+        leadId: lead.id,
+        type: 'email',
+        description: `Correo enviado: "${subject.trim()}"`,
+      },
+    });
+
+    res.json({ success: true, message: 'Correo enviado' });
+  } catch (error) {
+    console.error('Error al enviar correo desde el CRM:', error);
+    res.status(502).json({ error: 'Error al enviar el correo' });
+  }
+});
+
 export default router;

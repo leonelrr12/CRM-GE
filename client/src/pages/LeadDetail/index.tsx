@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, MessageSquarePlus, Mail, MessageCircle } from 'lucide-react';
 import api from '../../services/api';
 import type { Lead, Activity, LeadStatus } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
@@ -26,6 +26,10 @@ export default function LeadDetailPage() {
   const [newActivity, setNewActivity] = useState({ type: 'nota', description: '' });
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showMailForm, setShowMailForm] = useState(false);
+  const [mailForm, setMailForm] = useState({ subject: '', message: '' });
+  const [mailError, setMailError] = useState('');
+  const [mailSending, setMailSending] = useState(false);
 
   const fetchLead = useCallback(async () => {
     const [leadRes, actRes] = await Promise.all([
@@ -63,6 +67,25 @@ export default function LeadDetailPage() {
     setShowActivityForm(false);
     const actRes = await api.get(`/activities/lead/${id}`);
     setActivities(actRes.data);
+  };
+
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMailError('');
+    setMailSending(true);
+    try {
+      await api.post(`/leads/${id}/send-email`, mailForm);
+      setShowMailForm(false);
+      setMailForm({ subject: '', message: '' });
+      // Refrescar la bitácora (el server registra la actividad del correo)
+      const actRes = await api.get(`/activities/lead/${id}`);
+      setActivities(actRes.data);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setMailError(axiosErr.response?.data?.error || 'Error al enviar el correo');
+    } finally {
+      setMailSending(false);
+    }
   };
 
   if (loading) {
@@ -113,7 +136,20 @@ export default function LeadDetailPage() {
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Teléfono (ID WhatsApp)</label>
-                <input type="tel" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
+                <div className="flex gap-2 items-center">
+                  <input type="tel" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
+                  {lead.phone && (
+                    <a
+                      href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir chat de WhatsApp"
+                      className="p-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 shrink-0"
+                    >
+                      <MessageCircle size={16} />
+                    </a>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Servicio de interés</label>
@@ -168,9 +204,19 @@ export default function LeadDetailPage() {
               </div>
             )}
 
-            <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
-              <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
+                <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+              <button
+                onClick={() => { setMailError(''); setShowMailForm(true); }}
+                disabled={!lead.email}
+                title={!lead.email ? 'El lead no tiene email registrado' : 'Enviar correo al lead'}
+                className="flex items-center gap-1.5 px-4 py-2 bg-brand/10 text-brand rounded-lg text-sm hover:bg-brand/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Mail size={16} /> Enviar correo
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -259,6 +305,45 @@ export default function LeadDetailPage() {
             className="max-w-[90vw] max-h-[90vh] rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {showMailForm && lead.email && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMailForm(false)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Enviar correo a {lead.name}</h2>
+            {mailError && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-3">
+                {mailError}
+              </div>
+            )}
+            <form onSubmit={handleSendEmail} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Asunto *"
+                value={mailForm.subject}
+                onChange={(e) => setMailForm({ ...mailForm, subject: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
+                required
+              />
+              <textarea
+                placeholder="Mensaje *"
+                rows={5}
+                value={mailForm.message}
+                onChange={(e) => setMailForm({ ...mailForm, message: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand resize-none"
+                required
+              />
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowMailForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={mailSending} className="flex-1 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
+                  {mailSending ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

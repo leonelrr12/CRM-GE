@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, TrendingUp, UserPlus, Activity } from 'lucide-react';
+import { Users, TrendingUp, UserPlus, Activity, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import type { DashboardStats } from '../../types';
@@ -30,8 +30,9 @@ export default function DashboardPage() {
   if (!stats) return null;
 
   const cards = [
-    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-blue-600', bg: 'bg-brand/10' },
-    { label: 'Nuevos esta semana', value: stats.newThisWeek, icon: UserPlus, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-brand', bg: 'bg-brand/10' },
+    { label: 'Nuevos hoy', value: stats.newToday, icon: Clock, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Nuevos esta semana', value: stats.newThisWeek, icon: UserPlus, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Tasa de conversión', value: `${stats.conversionRate}%`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Crecimiento', value: `${stats.growthPercent}%`, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
   ];
@@ -45,7 +46,7 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {cards.map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
@@ -70,7 +71,7 @@ export default function DashboardPage() {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="var(--brand)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -99,6 +100,21 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {stats.byCompany.length > 1 && (
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Leads por empresa</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={stats.byCompany.map((c) => ({ name: c.name, count: c.count }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="count" fill="var(--brand)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Leads recientes</h2>
         <div className="overflow-x-auto">
@@ -126,7 +142,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-2.5 text-gray-500">{new Date(lead.createdAt).toLocaleDateString()}</td>
                     <td className="py-2.5">
-                      <Link to={`/leads/${lead.id}`} className="text-blue-600 hover:underline text-xs">Ver</Link>
+                      <Link to={`/leads/${lead.id}`} className="text-brand hover:underline text-xs">Ver</Link>
                     </td>
                   </tr>
                 );

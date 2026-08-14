@@ -54,6 +54,8 @@ export interface DashboardStats {
   byStatus: { status: string; count: number }[];
   conversionRate: number;
   newThisWeek: number;
+  newToday: number;
+  byCompany: { companyId: string | null; name: string; count: number }[];
   growthPercent: string;
   recentLeads: Pick<Lead, 'id' | 'name' | 'source' | 'status' | 'createdAt'>[];
 }

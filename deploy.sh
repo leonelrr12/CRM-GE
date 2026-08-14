@@ -67,9 +67,12 @@ for i in $(seq 1 12); do
     sleep 5
 done
 
-# Nginx: template con el dominio real
-cp $APP_DIR/nginx-crmge.conf /etc/nginx/sites-available/crmge
-sed -i "s/crm.midominio.com/$DOMAIN/g" /etc/nginx/sites-available/crmge
+# Nginx: la plantilla SOLO se instala si no existe config. Nunca se pisa la
+# config del servidor (p.ej. la que gestiona certbot con SSL) — pisarla deja
+# el sitio sin HTTPS.
+if [ ! -f /etc/nginx/sites-available/crmge ]; then
+    cp $APP_DIR/nginx-crmge.conf /etc/nginx/sites-available/crmge
+fi
 ln -sf /etc/nginx/sites-available/crmge /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 

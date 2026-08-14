@@ -3,6 +3,9 @@ dist/
 .env
 .env.production
 
+# scripts personales con credenciales
+claude.sh
+
 *.log
 npm-debug.log*
 

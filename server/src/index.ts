@@ -1,6 +1,8 @@
+// dotenv debe cargar ANTES que cualquier módulo que lea process.env
+// en el momento del import (los imports se evalúan antes que el cuerpo).
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import leadRoutes from './routes/leads';
 import activityRoutes from './routes/activities';
@@ -8,8 +10,6 @@ import dashboardRoutes from './routes/dashboard';
 import exportRoutes from './routes/export';
 import publicRoutes from './routes/public';
 import adminRoutes from './routes/admin';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

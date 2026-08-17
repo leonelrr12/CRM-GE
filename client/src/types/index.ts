@@ -9,11 +9,13 @@ export interface Company {
   userCount?: number;
 }
 
+export type UserRole = 'admin' | 'company_admin' | 'user' | 'viewer';
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   companyId?: string | null;
   company?: Company | null;
   createdAt: string;

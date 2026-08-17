@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { resolveCompany } from '../middleware/company';
+import { requireCanEdit } from '../middleware/canEdit';
 import { scopedWhere } from '../lib/scoping';
 import prisma from '../lib/prisma';
 
@@ -33,7 +34,7 @@ router.get('/lead/:leadId', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/lead/:leadId', async (req: AuthRequest, res: Response) => {
+router.post('/lead/:leadId', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const { type, description } = req.body;
 
@@ -76,7 +77,7 @@ router.post('/lead/:leadId', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const activity = await prisma.activity.findFirst({
       where: { id: req.params.id as string, lead: scopedWhere(req) },

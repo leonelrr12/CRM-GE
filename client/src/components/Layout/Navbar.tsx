@@ -33,6 +33,12 @@ export default function Navbar() {
           {user?.role === 'admin' && (
             <span className="bg-brand/10 text-brand text-xs px-2 py-0.5 rounded-full">admin</span>
           )}
+          {user?.role === 'company_admin' && (
+            <span className="bg-brand/10 text-brand text-xs px-2 py-0.5 rounded-full">Admin de empresa</span>
+          )}
+          {user?.role === 'viewer' && (
+            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">Solo lectura</span>
+          )}
         </div>
         <button
           onClick={logout}

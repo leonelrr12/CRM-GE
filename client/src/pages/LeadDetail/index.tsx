@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, MessageSquarePlus, Mail, MessageCircle } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import type { Lead, Activity, LeadStatus } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
@@ -17,6 +18,8 @@ function safeImageUrl(url: string | null | undefined): string | undefined {
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
   const navigate = useNavigate();
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -114,14 +117,16 @@ export default function LeadDetailPage() {
                 <h1 className="text-xl font-bold text-gray-900">{lead.name}</h1>
                 <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${status?.color}`}>{status?.label}</span>
               </div>
-              <div className="flex gap-2">
-                <button onClick={handleDeleteLead} className="p-2 text-gray-400 hover:text-red-600 cursor-pointer">
-                  <Trash2 size={18} />
-                </button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-2">
+                  <button onClick={handleDeleteLead} className="p-2 text-gray-400 hover:text-red-600 cursor-pointer">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className={`grid grid-cols-2 gap-4 mb-4 ${canEdit ? '' : 'pointer-events-none opacity-80'}`}>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Nombre</label>
                 <input type="text" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand" />
@@ -177,7 +182,7 @@ export default function LeadDetailPage() {
               </div>
             </div>
 
-            <div className="mb-4">
+            <div className={`mb-4 ${canEdit ? '' : 'pointer-events-none opacity-80'}`}>
               <label className="block text-xs text-gray-500 mb-1">Notas</label>
               <textarea value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand resize-none" />
             </div>
@@ -204,30 +209,34 @@ export default function LeadDetailPage() {
               </div>
             )}
 
-            <div className="flex gap-2">
-              <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
-                <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-              <button
-                onClick={() => { setMailError(''); setShowMailForm(true); }}
-                disabled={!lead.email}
-                title={!lead.email ? 'El lead no tiene email registrado' : 'Enviar correo al lead'}
-                className="flex items-center gap-1.5 px-4 py-2 bg-brand/10 text-brand rounded-lg text-sm hover:bg-brand/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <Mail size={16} /> Enviar correo
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex gap-2">
+                <button onClick={handleSaveLead} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 cursor-pointer">
+                  <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+                <button
+                  onClick={() => { setMailError(''); setShowMailForm(true); }}
+                  disabled={!lead.email}
+                  title={!lead.email ? 'El lead no tiene email registrado' : 'Enviar correo al lead'}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-brand/10 text-brand rounded-lg text-sm hover:bg-brand/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Mail size={16} /> Enviar correo
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
-              <button onClick={() => setShowActivityForm(!showActivityForm)} className="flex items-center gap-1 px-3 py-1.5 bg-brand/10 text-blue-600 rounded-lg text-sm hover:bg-brand/20 cursor-pointer">
-                <MessageSquarePlus size={16} /> Agregar
-              </button>
+              {canEdit && (
+                <button onClick={() => setShowActivityForm(!showActivityForm)} className="flex items-center gap-1 px-3 py-1.5 bg-brand/10 text-brand rounded-lg text-sm hover:bg-brand/20 cursor-pointer">
+                  <MessageSquarePlus size={16} /> Agregar
+                </button>
+              )}
             </div>
 
-            {showActivityForm && (
+            {showActivityForm && canEdit && (
               <form onSubmit={handleAddActivity} className="mb-4 bg-gray-50 rounded-lg p-3 space-y-2">
                 <select value={newActivity.type} onChange={(e) => setNewActivity({ ...newActivity, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none">
                   {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}

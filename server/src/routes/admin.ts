@@ -1,29 +1,49 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-import { requireAdmin } from '../middleware/admin';
+import { requireAdmin, requireUserManager } from '../middleware/admin';
+import { resolveCompany } from '../middleware/company';
 import { slugify, SLUG_REGEX } from '../lib/slugify';
 import prisma from '../lib/prisma';
 
 const router = Router();
 
 router.use(authenticateToken);
-router.use(requireAdmin);
+router.use(resolveCompany);
 
-const ROLES = ['admin', 'user'] as const;
+const ROLES = ['admin', 'company_admin', 'user', 'viewer'] as const;
 type Role = (typeof ROLES)[number];
 
 const COMPANY_SELECT = { id: true, name: true, slug: true, primaryColor: true, logoUrl: true } as const;
 
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
-// Valida rol + empresa antes de crear/editar un usuario.
-// Admins son globales (sin empresa); los users deben tener una.
-async function validateRoleAndCompany(body: { role?: string; companyId?: string }): Promise<{ ok: true; role: Role; companyId: string | null } | { ok: false; error: string; status: number }> {
+// Valida rol + empresa antes de crear/editar un usuario, y autoriza al actor:
+// el admin global asigna cualquier rol; el company_admin solo roles user/viewer
+// dentro de SU empresa (sin companyId en el body se fuerza la suya).
+// Admins globales no tienen empresa.
+async function validateRoleAndCompany(
+  body: { role?: string; companyId?: string },
+  actor: AuthRequest,
+): Promise<{ ok: true; role: Role; companyId: string | null } | { ok: false; error: string; status: number }> {
   const role = (body.role || 'user') as Role;
 
   if (!ROLES.includes(role)) {
     return { ok: false, error: 'Rol no válido', status: 400 };
+  }
+
+  if (actor.userRole === 'company_admin') {
+    if (role === 'admin' || role === 'company_admin') {
+      return { ok: false, error: `No puedes asignar el rol ${role}`, status: 403 };
+    }
+    if (body.companyId && body.companyId !== actor.companyId) {
+      return { ok: false, error: 'Solo puedes gestionar usuarios de tu empresa', status: 403 };
+    }
+    return { ok: true, role, companyId: actor.companyId ?? null };
+  }
+
+  if (actor.userRole !== 'admin') {
+    return { ok: false, error: 'Acceso denegado: se requieren permisos de administrador', status: 403 };
   }
 
   if (role === 'admin') {
@@ -47,9 +67,11 @@ async function validateRoleAndCompany(body: { role?: string; companyId?: string 
 
 // ── Usuarios ────────────────────────────────────────────────────────────────
 
-router.get('/users', async (_req: AuthRequest, res: Response) => {
+router.get('/users', requireUserManager, async (req: AuthRequest, res: Response) => {
   try {
     const users = await prisma.user.findMany({
+      // company_admin solo ve los usuarios de su empresa
+      where: req.userRole === 'company_admin' ? { companyId: req.companyId } : undefined,
       select: {
         id: true, name: true, email: true, role: true, companyId: true, createdAt: true, updatedAt: true,
         company: { select: COMPANY_SELECT },
@@ -62,7 +84,7 @@ router.get('/users', async (_req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/users', async (req: AuthRequest, res: Response) => {
+router.post('/users', requireUserManager, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password } = req.body;
 
@@ -71,7 +93,7 @@ router.post('/users', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const validated = await validateRoleAndCompany(req.body);
+    const validated = await validateRoleAndCompany(req.body, req);
     if (!validated.ok) {
       res.status(validated.status).json({ error: validated.error });
       return;
@@ -101,7 +123,7 @@ router.post('/users', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/users/:id', async (req: AuthRequest, res: Response) => {
+router.put('/users/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password } = req.body;
     const id = req.params.id as string;
@@ -110,6 +132,24 @@ router.put('/users/:id', async (req: AuthRequest, res: Response) => {
     if (!existingUser) {
       res.status(404).json({ error: 'Usuario no encontrado' });
       return;
+    }
+
+    // Reglas de target para company_admin (corren SIEMPRE, antes del update:
+    // el PUT escribe role/companyId con los valores previos si el body no los trae)
+    if (req.userRole === 'company_admin') {
+      if (existingUser.companyId !== req.companyId) {
+        // 404 y no 403: no revelar usuarios de otras empresas
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return;
+      }
+      if (existingUser.role === 'admin' || existingUser.role === 'company_admin') {
+        res.status(403).json({ error: 'No puedes gestionar este usuario' });
+        return;
+      }
+      if (id === req.userId && req.body.role !== undefined && req.body.role !== existingUser.role) {
+        res.status(400).json({ error: 'No puedes cambiar tu propio rol' });
+        return;
+      }
     }
 
     if (email && email !== existingUser.email) {
@@ -123,7 +163,7 @@ router.put('/users/:id', async (req: AuthRequest, res: Response) => {
     let role = existingUser.role;
     let companyId = existingUser.companyId;
     if (req.body.role !== undefined || req.body.companyId !== undefined) {
-      const validated = await validateRoleAndCompany(req.body);
+      const validated = await validateRoleAndCompany(req.body, req);
       if (!validated.ok) {
         res.status(validated.status).json({ error: validated.error });
         return;
@@ -154,7 +194,7 @@ router.put('/users/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/users/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
 
@@ -169,6 +209,17 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    if (req.userRole === 'company_admin') {
+      if (user.companyId !== req.companyId) {
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return;
+      }
+      if (user.role === 'admin' || user.role === 'company_admin') {
+        res.status(403).json({ error: 'No puedes gestionar este usuario' });
+        return;
+      }
+    }
+
     await prisma.user.delete({ where: { id } });
     res.json({ message: 'Usuario eliminado' });
   } catch (error) {
@@ -178,7 +229,7 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
 
 // ── Empresas ────────────────────────────────────────────────────────────────
 
-router.get('/companies', async (_req: AuthRequest, res: Response) => {
+router.get('/companies', requireAdmin, async (_req: AuthRequest, res: Response) => {
   try {
     const companies = await prisma.company.findMany({
       orderBy: { name: 'asc' },
@@ -200,7 +251,7 @@ router.get('/companies', async (_req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/companies', async (req: AuthRequest, res: Response) => {
+router.post('/companies', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { name, slug, primaryColor, logoUrl } = req.body as {
       name?: string;
@@ -273,7 +324,7 @@ router.post('/companies', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/companies/:id', async (req: AuthRequest, res: Response) => {
+router.put('/companies/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
     const { name, slug, primaryColor, logoUrl } = req.body as {
@@ -338,7 +389,7 @@ router.put('/companies/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/companies/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/companies/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
 

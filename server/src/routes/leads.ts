@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { resolveCompany } from '../middleware/company';
+import { requireCanEdit } from '../middleware/canEdit';
 import { scopedWhere } from '../lib/scoping';
 import prisma from '../lib/prisma';
 
@@ -63,7 +64,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, phone, contactPhone, serviceInterest, city, budget, receiptImage, source, status, notes } = req.body;
 
@@ -124,7 +125,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, phone, contactPhone, serviceInterest, city, budget, receiptImage, source, status, notes } = req.body;
 
@@ -168,7 +169,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/status', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.body;
 
@@ -213,7 +214,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const owned = await prisma.lead.findFirst({
       where: { id: req.params.id as string, ...scopedWhere(req) },
@@ -234,7 +235,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // Envío de correo al lead desde el CRM. El server llama directo al mailer
 // con la key del .env (misma cadena que el proxy público /api/public/send-mail).
-router.post('/:id/send-email', async (req: AuthRequest, res: Response) => {
+router.post('/:id/send-email', requireCanEdit, async (req: AuthRequest, res: Response) => {
   try {
     const { subject, message } = req.body as { subject?: string; message?: string };
 

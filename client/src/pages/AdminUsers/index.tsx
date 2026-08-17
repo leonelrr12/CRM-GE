@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Shield, ShieldOff, Search } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import type { User, Company } from '../../types';
 
 interface UserForm {
@@ -13,7 +14,23 @@ interface UserForm {
 
 const emptyForm: UserForm = { name: '', email: '', password: '', role: 'user', companyId: '' };
 
+// Badge de rol para la tabla
+const roleBadge = (role: string) => {
+  switch (role) {
+    case 'admin':
+      return { label: 'Admin', cls: 'bg-purple-100 text-purple-700', shield: true };
+    case 'company_admin':
+      return { label: 'Admin empresa', cls: 'bg-brand/10 text-brand', shield: true };
+    case 'viewer':
+      return { label: 'Solo lectura', cls: 'bg-gray-100 text-gray-500', shield: false };
+    default:
+      return { label: 'Usuario', cls: 'bg-gray-100 text-gray-600', shield: false };
+  }
+};
+
 export default function AdminUsersPage() {
+  const { user } = useAuth();
+  const isGlobalAdmin = user?.role === 'admin';
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,14 +41,20 @@ export default function AdminUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const [usersRes, companiesRes] = await Promise.all([
-      api.get('/admin/users'),
-      api.get('/admin/companies'),
-    ]);
-    setUsers(usersRes.data);
-    setCompanies(companiesRes.data);
-    setLoading(false);
-  }, []);
+    try {
+      const usersRes = await api.get('/admin/users');
+      setUsers(usersRes.data);
+      // company_admin no tiene acceso a /admin/companies (403)
+      if (isGlobalAdmin) {
+        const companiesRes = await api.get('/admin/companies');
+        setCompanies(companiesRes.data);
+      }
+    } catch {
+      // Sin bloqueo: un fallo no debe dejar la página en loading eterno
+    } finally {
+      setLoading(false);
+    }
+  }, [isGlobalAdmin]);
 
   useEffect(() => {
     fetchUsers();
@@ -55,8 +78,9 @@ export default function AdminUsersPage() {
       name: form.name,
       email: form.email,
       role: form.role,
-      companyId: form.role === 'admin' ? null : form.companyId,
     };
+    // company_admin: el server fuerza su empresa (omitir la key; '' daría 400)
+    if (isGlobalAdmin) payload.companyId = form.role === 'admin' ? null : form.companyId;
     if (form.password) payload.password = form.password;
     if (editingId) {
       await api.put(`/admin/users/${editingId}`, payload);
@@ -132,14 +156,15 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-gray-900 font-medium">{user.name}</td>
                     <td className="px-4 py-3 text-gray-500">{user.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {user.role === 'admin' ? <Shield size={12} /> : <ShieldOff size={12} />}
-                        {user.role === 'admin' ? 'Admin' : 'Usuario'}
-                      </span>
+                      {(() => {
+                        const badge = roleBadge(user.role);
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>
+                            {badge.shield ? <Shield size={12} /> : <ShieldOff size={12} />}
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{user.company?.name ?? 'Global'}</td>
                     <td className="px-4 py-3 text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
@@ -198,9 +223,11 @@ export default function AdminUsersPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
               >
                 <option value="user">Usuario</option>
-                <option value="admin">Admin (global)</option>
+                {isGlobalAdmin && <option value="company_admin">Admin de empresa</option>}
+                <option value="viewer">Solo lectura</option>
+                {isGlobalAdmin && <option value="admin">Admin (global)</option>}
               </select>
-              {form.role === 'user' && (
+              {isGlobalAdmin && form.role !== 'admin' && (
                 <select
                   value={form.companyId}
                   onChange={(e) => setForm({ ...form, companyId: e.target.value })}

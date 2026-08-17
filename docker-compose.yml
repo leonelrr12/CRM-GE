@@ -21,7 +21,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3005
-      - DATABASE_URL=postgresql://postgres:admin1204@crmge-db:5432/crmge?schema=public
+      - DATABASE_URL=postgresql://postgres:kIKSopx98Y0YmGi0qQygC5gIHlTiv53j@crmge-db:5432/crmge?schema=public
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s

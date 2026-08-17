@@ -34,7 +34,7 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
-        {user?.role === 'admin' && (
+        {(user?.role === 'admin' || user?.role === 'company_admin') && (
           <>
             <div className="pt-3 pb-1">
               <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3">Admin</p>
@@ -52,19 +52,21 @@ export default function Sidebar() {
               <Shield size={18} />
               Usuarios
             </NavLink>
-            <NavLink
-              to="/admin/companies"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-brand text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`
-              }
-            >
-              <Building2 size={18} />
-              Empresas
-            </NavLink>
+            {user?.role === 'admin' && (
+              <NavLink
+                to="/admin/companies"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? 'bg-brand text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <Building2 size={18} />
+                Empresas
+              </NavLink>
+            )}
           </>
         )}
       </nav>

@@ -9,6 +9,7 @@ import PipelinePage from './pages/Pipeline';
 import PublicFormPage from './pages/PublicForm';
 import AdminUsersPage from './pages/AdminUsers';
 import AdminCompaniesPage from './pages/AdminCompanies';
+import type { UserRole } from './types';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -16,13 +17,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Guard de rol por ruta (el backend igual protege; evita páginas rotas por 403)
+function AdminRoute({ roles, children }: { roles: UserRole[]; children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+  if (!user || !roles.includes(user.role)) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -45,8 +58,8 @@ function AppRoutes() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/leads/:id" element={<LeadDetailPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="/admin/companies" element={<AdminCompaniesPage />} />
+        <Route path="/admin/users" element={<AdminRoute roles={['admin', 'company_admin']}><AdminUsersPage /></AdminRoute>} />
+        <Route path="/admin/companies" element={<AdminRoute roles={['admin']}><AdminCompaniesPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

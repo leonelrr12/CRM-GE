@@ -14,6 +14,7 @@ import {
 import { useDraggable } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import type { Lead, LeadStatus } from '../../types';
 import { STATUSES } from '../../types';
@@ -25,7 +26,7 @@ function DroppableColumn({ status, children }: { status: LeadStatus; children: R
   return (
     <div
       ref={setNodeRef}
-      className={`bg-gray-50 rounded-xl p-3 min-h-[200px] transition-colors ${isOver ? 'ring-2 ring-blue-400 bg-brand/10' : ''}`}
+      className={`bg-gray-50 rounded-xl p-3 min-h-[200px] transition-colors ${isOver ? 'ring-2 ring-brand bg-brand/10' : ''}`}
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -41,10 +42,11 @@ function DroppableColumn({ status, children }: { status: LeadStatus; children: R
   );
 }
 
-function DraggableCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
+function DraggableCard({ lead, onClick, disabled }: { lead: Lead; onClick: () => void; disabled?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { lead },
+    disabled,
   });
 
   const style = transform
@@ -58,7 +60,7 @@ function DraggableCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
       {...attributes}
       style={style}
       onClick={onClick}
-      className={`bg-white rounded-lg p-3 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${isDragging ? 'opacity-80 shadow-lg rotate-1' : ''}`}
+      className={`bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${isDragging ? 'opacity-80 shadow-lg rotate-1' : ''} ${disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
     >
       <p className="text-sm font-medium text-gray-900 truncate">{lead.name}</p>
       <div className="flex items-center gap-2 mt-1.5">
@@ -74,6 +76,8 @@ function DraggableCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
 export default function PipelinePage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -91,6 +95,7 @@ export default function PipelinePage() {
   }, [fetchLeads]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!canEdit) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -120,7 +125,9 @@ export default function PipelinePage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Pipeline de Ventas</h1>
-      <p className="text-sm text-gray-500 mb-4">Arrastra los leads entre columnas para cambiar su estado</p>
+      {canEdit && (
+        <p className="text-sm text-gray-500 mb-4">Arrastra los leads entre columnas para cambiar su estado</p>
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-7 gap-3">
@@ -133,6 +140,7 @@ export default function PipelinePage() {
                     <DraggableCard
                       key={lead.id}
                       lead={lead}
+                      disabled={!canEdit}
                       onClick={() => navigate(`/leads/${lead.id}`)}
                     />
                   ))}

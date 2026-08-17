@@ -94,9 +94,11 @@ export default function LeadsPage() {
           <button onClick={() => handleExport('csv')} className="flex items-center gap-1.5 px-3 py-2 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-700 cursor-pointer">
             <Download size={16} /> CSV
           </button>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
-            <Plus size={16} /> Nuevo Lead
-          </button>
+          {user?.role !== 'viewer' && (
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 cursor-pointer">
+              <Plus size={16} /> Nuevo Lead
+            </button>
+          )}
         </div>
       </div>
 

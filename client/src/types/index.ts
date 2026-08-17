@@ -9,6 +9,15 @@ export interface Company {
   userCount?: number;
 }
 
+export interface ChatMessage {
+  id: number;
+  chatId: string;
+  fromMe: boolean;
+  text: string;
+  timestamp: string;
+  type?: string;
+}
+
 export type UserRole = 'admin' | 'company_admin' | 'user' | 'viewer';
 
 export interface User {

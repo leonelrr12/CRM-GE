@@ -27,4 +27,6 @@ declare module 'lucide-react' {
   export const Clock: Icon;
   export const Mail: Icon;
   export const MessageCircle: Icon;
+  export const RefreshCw: Icon;
+  export const Send: Icon;
 }

@@ -306,4 +306,134 @@ router.post('/:id/send-email', requireCanEdit, async (req: AuthRequest, res: Res
   }
 });
 
+// ── Chat de WhatsApp ─────────────────────────────────────────────────────────
+// El server proxya al backend del bot (chatbot_backend, API openwa-compatible)
+// con la key del .env — mismo patrón que el mailer. La key nunca va al cliente.
+
+const CHAT_TIMEOUT_MS = 8000;
+
+async function whatsappChatConfig(req: AuthRequest): Promise<{ ok: true; url: string; key: string; session: string } | { ok: false; error: string }> {
+  const url = process.env.WHATSAPP_API_URL || 'http://chatbot_backend:3000';
+  const key = process.env.WHATSAPP_API_KEY || '';
+  const session = process.env.WHATSAPP_SESSION || 'asm-bot';
+  if (!key) {
+    console.error('WHATSAPP_API_KEY no configurada en el .env del server');
+    return { ok: false, error: 'Chat de WhatsApp no configurado' };
+  }
+  return { ok: true, url, key, session };
+}
+
+// Hilo de conversación del lead (viewer puede leer)
+router.get('/:id/chat', async (req: AuthRequest, res: Response) => {
+  try {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+    });
+    if (!lead) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+    if (!lead.phone) {
+      res.status(400).json({ error: 'El lead no tiene número de WhatsApp' });
+      return;
+    }
+
+    const cfg = await whatsappChatConfig(req);
+    if (!cfg.ok) {
+      res.status(500).json({ error: cfg.error });
+      return;
+    }
+
+    const phoneDigits = lead.phone.replace(/\D/g, '');
+    const chatId = `${phoneDigits}@s.whatsapp.net`;
+
+    const botRes = await fetch(
+      `${cfg.url}/api/sessions/${cfg.session}/messages?chatId=${encodeURIComponent(chatId)}&phone=${phoneDigits}&limit=100`,
+      {
+        headers: { 'X-API-Key': cfg.key },
+        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+      },
+    );
+
+    if (!botRes.ok) {
+      console.error('Bot de WhatsApp rechazó la petición de mensajes:', botRes.status);
+      res.status(502).json({ error: 'WhatsApp no disponible' });
+      return;
+    }
+
+    const data = (await botRes.json()) as { messages?: unknown[]; total?: number };
+    res.json({ chatId, session: cfg.session, messages: data.messages ?? [], total: data.total ?? 0 });
+  } catch (error) {
+    console.error('Error al obtener chat del lead:', error);
+    res.status(502).json({ error: 'WhatsApp no disponible' });
+  }
+});
+
+// Responder en la conversación (viewer bloqueado por requireCanEdit)
+router.post('/:id/chat/send', requireCanEdit, async (req: AuthRequest, res: Response) => {
+  try {
+    const { message } = req.body as { message?: string };
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      res.status(400).json({ error: 'El mensaje es requerido' });
+      return;
+    }
+    if (message.length > 4000) {
+      res.status(400).json({ error: 'Mensaje demasiado largo (máx 4000)' });
+      return;
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, ...scopedWhere(req) },
+    });
+    if (!lead) {
+      res.status(404).json({ error: 'Lead no encontrado' });
+      return;
+    }
+    if (!lead.phone) {
+      res.status(400).json({ error: 'El lead no tiene número de WhatsApp' });
+      return;
+    }
+
+    const cfg = await whatsappChatConfig(req);
+    if (!cfg.ok) {
+      res.status(500).json({ error: cfg.error });
+      return;
+    }
+
+    const phoneDigits = lead.phone.replace(/\D/g, '');
+    const chatId = `${phoneDigits}@s.whatsapp.net`;
+
+    const botRes = await fetch(`${cfg.url}/api/sessions/${cfg.session}/messages/send-text`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': cfg.key,
+      },
+      body: JSON.stringify({ chatId, text: message }),
+      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+    });
+
+    if (!botRes.ok) {
+      console.error('Bot de WhatsApp rechazó el envío:', botRes.status);
+      res.status(502).json({ error: 'WhatsApp no disponible' });
+      return;
+    }
+
+    // Bitácora en el lead (el hilo en sí lo registra el bot)
+    await prisma.activity.create({
+      data: {
+        leadId: lead.id,
+        type: 'nota',
+        description: `WhatsApp: "${message.trim().slice(0, 120)}"`,
+      },
+    });
+
+    res.json({ success: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error al enviar mensaje de WhatsApp desde el CRM:', error);
+    res.status(502).json({ error: 'WhatsApp no disponible' });
+  }
+});
+
 export default router;

@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, MessageSquarePlus, Mail, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, MessageSquarePlus, Mail, MessageCircle, RefreshCw, Send } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Lead, Activity, LeadStatus } from '../../types';
+import type { Lead, Activity, LeadStatus, ChatMessage } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
 function safeImageUrl(url: string | null | undefined): string | undefined {
@@ -33,6 +33,13 @@ export default function LeadDetailPage() {
   const [mailForm, setMailForm] = useState({ subject: '', message: '' });
   const [mailError, setMailError] = useState('');
   const [mailSending, setMailSending] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [chatDraft, setChatDraft] = useState('');
+  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const chatInFlight = useRef(false);
 
   const fetchLead = useCallback(async () => {
     const [leadRes, actRes] = await Promise.all([
@@ -89,6 +96,67 @@ export default function LeadDetailPage() {
     } finally {
       setMailSending(false);
     }
+  };
+
+  const fetchChat = useCallback(async () => {
+    if (chatInFlight.current) return;
+    chatInFlight.current = true;
+    try {
+      const res = await api.get(`/leads/${id}/chat`);
+      setChatMessages(res.data.messages);
+      setChatError('');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setChatError(axiosErr.response?.data?.error || 'WhatsApp no disponible');
+    } finally {
+      chatInFlight.current = false;
+      setChatLoading(false);
+    }
+  }, [id]);
+
+  // Polling del hilo cada 15s mientras el lead tiene número de WhatsApp
+  useEffect(() => {
+    if (!lead?.phone) return;
+    setChatLoading(true);
+    fetchChat();
+    const t = setInterval(fetchChat, 15000);
+    return () => clearInterval(t);
+  }, [lead?.phone, fetchChat]);
+
+  // Scroll al fondo al cargar o llegar mensajes nuevos
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [chatMessages.length]);
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatDraft.trim() || chatSending) return;
+    setChatSending(true);
+    try {
+      await api.post(`/leads/${id}/chat/send`, { message: chatDraft });
+      setChatDraft('');
+      // Refetch inmediato: el bot inserta el mensaje de forma síncrona
+      await fetchChat();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setChatError(axiosErr.response?.data?.error || 'Error al enviar el mensaje');
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const renderChatText = (m: ChatMessage) => {
+    if (m.type === 'image') return '📷 [Imagen]';
+    if (m.type === 'media') {
+      const t = m.text.toLowerCase();
+      if (t.includes('video')) return '🎬 [Video]';
+      if (t.includes('audio')) return '🎵 [Audio]';
+      if (t.includes('image') || t.includes('imagen')) return '📷 [Imagen]';
+      return '📎 [Archivo]';
+    }
+    return m.text;
   };
 
   if (loading) {
@@ -270,6 +338,76 @@ export default function LeadDetailPage() {
                 })
               )}
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Chat de WhatsApp</h2>
+              {lead.phone && (
+                <button
+                  onClick={() => { setChatLoading(true); fetchChat(); }}
+                  disabled={chatLoading}
+                  className="p-1.5 text-gray-400 hover:text-brand cursor-pointer"
+                  title="Actualizar"
+                >
+                  <RefreshCw size={16} className={chatLoading ? 'animate-spin' : ''} />
+                </button>
+              )}
+            </div>
+
+            {!lead.phone ? (
+              <p className="text-gray-400 text-sm">Este lead no tiene número de WhatsApp</p>
+            ) : (
+              <>
+                {chatError && (
+                  <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-3">
+                    {chatError}
+                    <button onClick={() => { setChatLoading(true); fetchChat(); }} className="underline ml-2 cursor-pointer">Reintentar</button>
+                  </div>
+                )}
+
+                <div ref={chatBoxRef} className="max-h-[400px] overflow-y-auto space-y-3 pr-1">
+                  {chatLoading && chatMessages.length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-4">Cargando chat...</p>
+                  ) : chatMessages.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-gray-400 text-sm">Sin mensajes aún</p>
+                      {canEdit && <p className="text-xs text-gray-400 mt-1">Responde para iniciar la conversación</p>}
+                    </div>
+                  ) : (
+                    chatMessages.map((m) => (
+                      <div key={m.id} className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${m.fromMe ? 'bg-brand text-white ml-auto' : 'bg-gray-100 text-gray-900 mr-auto'}`}>
+                        <p className="whitespace-pre-wrap break-words">{renderChatText(m)}</p>
+                        <p className={`text-[10px] mt-1 ${m.fromMe ? 'text-white/70' : 'text-gray-400'}`}>
+                          {new Date(m.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {canEdit && (
+                  <form onSubmit={handleSendChat} className="flex gap-2 mt-3">
+                    <input
+                      type="text"
+                      placeholder="Escribe una respuesta..."
+                      value={chatDraft}
+                      onChange={(e) => setChatDraft(e.target.value)}
+                      maxLength={4000}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
+                    />
+                    <button
+                      type="submit"
+                      disabled={chatSending || !chatDraft.trim()}
+                      className="px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      title="Enviar"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </form>
+                )}
+              </>
+            )}
           </div>
         </div>
 

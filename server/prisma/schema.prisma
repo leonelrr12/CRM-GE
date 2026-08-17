@@ -19,6 +19,7 @@ model Company {
   leads         Lead[]
   webhooks      Webhook[]
   notifications Notification[]
+  rules         Rule[]
 
   @@map("companies")
 }
@@ -99,4 +100,20 @@ model Notification {
 
   @@index([companyId, readAt])
   @@map("notifications")
+}
+
+model Rule {
+  id         String   @id @default(uuid())
+  name       String
+  active     Boolean  @default(true)
+  trigger    String   // 'lead.created' | 'lead.status_changed' | 'lead.updated'
+  conditions Json     // [{ field, op, value }]
+  actions    Json     // [{ type, value }]
+  companyId  String   @map("company_id")
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@map("rules")
 }

@@ -40,6 +40,74 @@ export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
   { value: 'activity.created', label: 'Actividad creada' },
 ];
 
+export type RuleTrigger = 'lead.created' | 'lead.status_changed' | 'lead.updated';
+export type RuleField = 'source' | 'status' | 'serviceInterest' | 'city' | 'name' | 'budget';
+export type RuleOp = 'eq' | 'neq' | 'contains' | 'gt' | 'lt';
+export type RuleActionType = 'set_status' | 'notify' | 'add_activity' | 'send_email';
+
+export interface RuleCondition {
+  field: RuleField;
+  op: RuleOp;
+  value: string;
+}
+
+export interface RuleAction {
+  type: RuleActionType;
+  value: string | { subject: string; body: string };
+}
+
+export interface Rule {
+  id: string;
+  name: string;
+  active: boolean;
+  trigger: RuleTrigger;
+  conditions: RuleCondition[];
+  actions: RuleAction[];
+  companyId: string;
+  company?: Company | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const RULE_TRIGGERS: { value: RuleTrigger; label: string }[] = [
+  { value: 'lead.created', label: 'Lead creado' },
+  { value: 'lead.status_changed', label: 'Estado cambiado' },
+  { value: 'lead.updated', label: 'Lead editado' },
+];
+
+export const RULE_FIELDS: { value: RuleField; label: string }[] = [
+  { value: 'source', label: 'Origen' },
+  { value: 'status', label: 'Estado' },
+  { value: 'serviceInterest', label: 'Servicio de interés' },
+  { value: 'city', label: 'Ciudad' },
+  { value: 'name', label: 'Nombre' },
+  { value: 'budget', label: 'Presupuesto' },
+];
+
+export const RULE_OP_LABELS: Record<RuleOp, string> = {
+  eq: 'es igual a',
+  neq: 'no es igual a',
+  contains: 'contiene',
+  gt: 'mayor que',
+  lt: 'menor que',
+};
+
+export const RULE_OPS_BY_FIELD: Record<RuleField, RuleOp[]> = {
+  source: ['eq', 'neq'],
+  status: ['eq', 'neq'],
+  name: ['eq', 'neq', 'contains'],
+  serviceInterest: ['eq', 'neq', 'contains'],
+  city: ['eq', 'neq', 'contains'],
+  budget: ['gt', 'lt'],
+};
+
+export const RULE_ACTION_TYPES: { value: RuleActionType; label: string }[] = [
+  { value: 'set_status', label: 'Cambiar estado' },
+  { value: 'notify', label: 'Notificar' },
+  { value: 'add_activity', label: 'Agregar actividad' },
+  { value: 'send_email', label: 'Enviar correo' },
+];
+
 export interface ChatMessage {
   id: number;
   chatId: string;

@@ -10,6 +10,7 @@ import PublicFormPage from './pages/PublicForm';
 import AdminUsersPage from './pages/AdminUsers';
 import AdminCompaniesPage from './pages/AdminCompanies';
 import AdminWebhooksPage from './pages/AdminWebhooks';
+import AdminRulesPage from './pages/AdminRules';
 import type { UserRole } from './types';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,7 @@ function AppRoutes() {
         <Route path="/admin/users" element={<AdminRoute roles={['admin', 'company_admin']}><AdminUsersPage /></AdminRoute>} />
         <Route path="/admin/companies" element={<AdminRoute roles={['admin']}><AdminCompaniesPage /></AdminRoute>} />
         <Route path="/admin/webhooks" element={<AdminRoute roles={['admin', 'company_admin']}><AdminWebhooksPage /></AdminRoute>} />
+        <Route path="/admin/rules" element={<AdminRoute roles={['admin', 'company_admin']}><AdminRulesPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

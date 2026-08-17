@@ -5,23 +5,12 @@ import { resolveCompany } from '../middleware/company';
 import { requireCanEdit } from '../middleware/canEdit';
 import { scopedWhere } from '../lib/scoping';
 import { emitEvent } from '../lib/events';
+import { LEAD_STATUSES, STATUS_LABELS } from '../lib/statuses';
+import type { LeadStatus } from '../lib/statuses';
 import prisma from '../lib/prisma';
 
 const router = Router();
 router.use(authenticateToken, resolveCompany);
-
-const LEAD_STATUSES = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'] as const;
-type LeadStatus = (typeof LEAD_STATUSES)[number];
-
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  nuevo: 'Nuevo',
-  contactado: 'Contactado',
-  calificado: 'Calificado',
-  enviar_propuesta: 'Enviar propuesta',
-  negociacion: 'Negociación',
-  cerrado: 'Cerrado',
-  perdido: 'Perdido',
-};
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -136,6 +125,7 @@ router.post('/', requireCanEdit, async (req: AuthRequest, res: Response) => {
       message: lead.name,
       link: `/leads/${lead.id}`,
       data: { id: lead.id, name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, status: lead.status, city: lead.city },
+      lead: { id: lead.id, name: lead.name, email: lead.email, serviceInterest: lead.serviceInterest, city: lead.city, budget: lead.budget, source: lead.source, status: lead.status, companyId: lead.companyId },
     });
 
     res.status(201).json(lead);
@@ -192,6 +182,7 @@ router.put('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
         : lead.name,
       link: `/leads/${lead.id}`,
       data: { id: lead.id, name: lead.name, previousStatus: owned.status, status: lead.status },
+      lead: { id: lead.id, name: lead.name, email: lead.email, serviceInterest: lead.serviceInterest, city: lead.city, budget: lead.budget, source: lead.source, status: lead.status, companyId: lead.companyId },
     });
 
     res.json(lead);
@@ -248,6 +239,7 @@ router.patch('/:id/status', requireCanEdit, async (req: AuthRequest, res: Respon
       message: `${lead.name} · ${STATUS_LABELS[owned.status as LeadStatus]} → ${STATUS_LABELS[lead.status as LeadStatus]}`,
       link: `/leads/${lead.id}`,
       data: { id: lead.id, name: lead.name, previousStatus: owned.status, status: lead.status },
+      lead: { id: lead.id, name: lead.name, email: lead.email, serviceInterest: lead.serviceInterest, city: lead.city, budget: lead.budget, source: lead.source, status: lead.status, companyId: lead.companyId },
     });
 
     res.json(lead);

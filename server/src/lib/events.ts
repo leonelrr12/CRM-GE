@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { runRules, RULE_TRIGGERS } from './rules';
+import type { RuleLead, RuleTrigger } from './rules';
 import prisma from './prisma';
 
 export const EVENT_TYPES = ['lead.created', 'lead.status_changed', 'lead.updated', 'activity.created'] as const;
@@ -13,17 +15,32 @@ interface EmitEventOptions {
   message?: string;
   link?: string;
   data?: Record<string, unknown>;
+  lead?: RuleLead; // presente en eventos de lead → dispara las reglas
+}
+
+interface EmitEventFlags {
+  skipRules?: boolean; // true cuando el cambio vino de una acción de regla (anti-loop)
 }
 
 // La notificación in-app se espera (rápida, y garantiza que exista cuando
-// responde el endpoint); el dispatch de webhooks es fire-and-forget y nunca
-// bloquea la respuesta. Nunca lanza: errores → console.error.
-export async function emitEvent({ type, companyId, title, message, link, data }: EmitEventOptions): Promise<void> {
+// responde el endpoint); las reglas también (determinista antes de responder);
+// el dispatch de webhooks es fire-and-forget y nunca bloquea la respuesta.
+// Nunca lanza: errores → console.error.
+export async function emitEvent({ type, companyId, title, message, link, data, lead }: EmitEventOptions, flags: EmitEventFlags = {}): Promise<void> {
   try {
     await prisma.notification.create({ data: { companyId, type, title, message, link } });
   } catch (err) {
     console.error('emitEvent: notification.create falló', err);
   }
+
+  if (!flags.skipRules && lead && (RULE_TRIGGERS as readonly string[]).includes(type)) {
+    try {
+      await runRules(type as RuleTrigger, lead);
+    } catch (err) {
+      console.error('runRules falló', err);
+    }
+  }
+
   void dispatchWebhooks(type, companyId, data).catch((err) => console.error('dispatchWebhooks falló', err));
 }
 

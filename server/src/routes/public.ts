@@ -173,6 +173,7 @@ router.post('/lead', async (req: Request, res: Response) => {
       message: lead.name,
       link: `/leads/${lead.id}`,
       data: { id: lead.id, name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, status: lead.status, city: lead.city },
+      lead: { id: lead.id, name: lead.name, email: lead.email, serviceInterest: lead.serviceInterest, city: lead.city, budget: lead.budget, source: lead.source, status: lead.status, companyId: lead.companyId },
     });
 
     res.status(201).json({

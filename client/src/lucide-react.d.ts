@@ -33,4 +33,7 @@ declare module 'lucide-react' {
   export const CheckCheck: Icon;
   export const Webhook: Icon;
   export const KeyRound: Icon;
+  export const Workflow: Icon;
+  export const Zap: Icon;
+  export const Power: Icon;
 }

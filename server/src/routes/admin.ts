@@ -6,6 +6,7 @@ import { requireAdmin, requireUserManager } from '../middleware/admin';
 import { resolveCompany } from '../middleware/company';
 import { slugify, SLUG_REGEX } from '../lib/slugify';
 import { EVENT_TYPES, EventType } from '../lib/events';
+import { validateRuleBody } from '../lib/rules';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -622,6 +623,180 @@ router.post('/webhooks/:id/regenerate-secret', requireUserManager, async (req: A
     res.json({ id, secret });
   } catch (error) {
     res.status(500).json({ error: 'Error al regenerar secret' });
+  }
+});
+
+// ── Reglas (automatización IF/THEN) ─────────────────────────────────────────
+
+// Para company_admin: la regla debe ser de SU empresa (404 = no revelar ajenas)
+async function ruleTargetCheck(req: AuthRequest, rule: { companyId: string }): Promise<{ ok: boolean; status?: number; error?: string }> {
+  if (req.userRole === 'company_admin' && rule.companyId !== req.companyId) {
+    return { ok: false, status: 404, error: 'Regla no encontrada' };
+  }
+  return { ok: true };
+}
+
+// Resuelve la empresa de la regla según el actor (requerida siempre)
+async function resolveRuleCompany(req: AuthRequest, bodyCompanyId: unknown): Promise<{ ok: true; companyId: string } | { ok: false; error: string; status: number }> {
+  if (req.userRole === 'company_admin') {
+    if (bodyCompanyId && bodyCompanyId !== req.companyId) {
+      return { ok: false, error: 'Solo puedes configurar reglas de tu empresa', status: 403 };
+    }
+    return { ok: true, companyId: req.companyId ?? '' };
+  }
+  if (typeof bodyCompanyId !== 'string' || !bodyCompanyId) {
+    return { ok: false, error: 'La empresa es requerida', status: 400 };
+  }
+  const company = await prisma.company.findUnique({ where: { id: bodyCompanyId } });
+  if (!company) {
+    return { ok: false, error: 'Empresa no encontrada', status: 400 };
+  }
+  return { ok: true, companyId: company.id };
+}
+
+router.get('/rules', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const { companyId } = req.query;
+    const where: { companyId?: string } =
+      req.userRole === 'company_admin'
+        ? { companyId: req.companyId ?? '' }
+        : typeof companyId === 'string' && companyId
+          ? { companyId }
+          : {};
+
+    const rules = await prisma.rule.findMany({
+      where,
+      include: { company: { select: COMPANY_SELECT } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(rules);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener reglas' });
+  }
+});
+
+router.post('/rules', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const validated = validateRuleBody(req.body ?? {});
+    if (!validated.ok) {
+      res.status(validated.status).json({ error: validated.error });
+      return;
+    }
+
+    const company = await resolveRuleCompany(req, req.body.companyId);
+    if (!company.ok) {
+      res.status(company.status).json({ error: company.error });
+      return;
+    }
+
+    const rule = await prisma.rule.create({
+      data: {
+        name: validated.data.name,
+        active: validated.data.active,
+        trigger: validated.data.trigger,
+        conditions: validated.data.conditions as unknown as object,
+        actions: validated.data.actions as unknown as object,
+        companyId: company.companyId,
+      },
+      include: { company: { select: COMPANY_SELECT } },
+    });
+    res.status(201).json(rule);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear regla' });
+  }
+});
+
+router.put('/rules/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.rule.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Regla no encontrada' });
+      return;
+    }
+    const target = await ruleTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    const validated = validateRuleBody(req.body ?? {});
+    if (!validated.ok) {
+      res.status(validated.status).json({ error: validated.error });
+      return;
+    }
+
+    let companyId = existing.companyId;
+    if (req.userRole === 'admin' && req.body.companyId !== undefined) {
+      const company = await resolveRuleCompany(req, req.body.companyId);
+      if (!company.ok) {
+        res.status(company.status).json({ error: company.error });
+        return;
+      }
+      companyId = company.companyId;
+    }
+
+    const rule = await prisma.rule.update({
+      where: { id },
+      data: {
+        name: validated.data.name,
+        active: validated.data.active,
+        trigger: validated.data.trigger,
+        conditions: validated.data.conditions as unknown as object,
+        actions: validated.data.actions as unknown as object,
+        companyId,
+      },
+      include: { company: { select: COMPANY_SELECT } },
+    });
+    res.json(rule);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar regla' });
+  }
+});
+
+router.delete('/rules/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.rule.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Regla no encontrada' });
+      return;
+    }
+    const target = await ruleTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    await prisma.rule.delete({ where: { id } });
+    res.json({ message: 'Regla eliminada' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar regla' });
+  }
+});
+
+router.post('/rules/:id/toggle', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.rule.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Regla no encontrada' });
+      return;
+    }
+    const target = await ruleTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    const rule = await prisma.rule.update({
+      where: { id },
+      data: { active: !existing.active },
+      include: { company: { select: COMPANY_SELECT } },
+    });
+    res.json(rule);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar regla' });
   }
 });
 

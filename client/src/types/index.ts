@@ -9,6 +9,37 @@ export interface Company {
   userCount?: number;
 }
 
+export interface NotificationItem {
+  id: string;
+  companyId: string;
+  type: string;
+  title: string;
+  message?: string | null;
+  link?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export type WebhookEvent = 'lead.created' | 'lead.status_changed' | 'lead.updated' | 'activity.created';
+
+export interface Webhook {
+  id: string;
+  url: string;
+  events: WebhookEvent[];
+  active: boolean;
+  companyId?: string | null;
+  company?: Company | null;
+  createdAt: string;
+  secret?: string; // solo en la respuesta de create/regenerate
+}
+
+export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
+  { value: 'lead.created', label: 'Lead creado' },
+  { value: 'lead.status_changed', label: 'Estado cambiado' },
+  { value: 'lead.updated', label: 'Lead editado' },
+  { value: 'activity.created', label: 'Actividad creada' },
+];
+
 export interface ChatMessage {
   id: number;
   chatId: string;

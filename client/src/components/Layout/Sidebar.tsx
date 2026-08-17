@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Columns2, Shield, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, Columns2, Shield, Building2, Webhook } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Sidebar() {
@@ -67,6 +67,19 @@ export default function Sidebar() {
                 Empresas
               </NavLink>
             )}
+            <NavLink
+              to="/admin/webhooks"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isActive
+                    ? 'bg-brand text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`
+              }
+            >
+              <Webhook size={18} />
+              Webhooks
+            </NavLink>
           </>
         )}
       </nav>

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { emitEvent } from '../lib/events';
 
 const router = Router();
 
@@ -163,6 +164,15 @@ router.post('/lead', async (req: Request, res: Response) => {
         notes: notes || null,
         companyId: company.id,
       },
+    });
+
+    await emitEvent({
+      type: 'lead.created',
+      companyId: company.id,
+      title: 'Nuevo lead',
+      message: lead.name,
+      link: `/leads/${lead.id}`,
+      data: { id: lead.id, name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, status: lead.status, city: lead.city },
     });
 
     res.status(201).json({

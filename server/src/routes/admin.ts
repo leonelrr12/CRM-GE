@@ -1,9 +1,11 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { requireAdmin, requireUserManager } from '../middleware/admin';
 import { resolveCompany } from '../middleware/company';
 import { slugify, SLUG_REGEX } from '../lib/slugify';
+import { EVENT_TYPES, EventType } from '../lib/events';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -412,6 +414,214 @@ router.delete('/companies/:id', requireAdmin, async (req: AuthRequest, res: Resp
     res.json({ message: 'Empresa eliminada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar empresa' });
+  }
+});
+
+// ── Webhooks ────────────────────────────────────────────────────────────────
+
+// https siempre; http solo para localhost/127.0.0.1 (permite E2E local)
+function webhookUrlOk(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'https:') return true;
+    return u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+  } catch {
+    return false;
+  }
+}
+
+function webhookWithoutSecret(wh: { id: string; url: string; events: string[]; active: boolean; companyId: string | null; createdAt: Date; company?: { id: string; name: string } | null }): Record<string, unknown> {
+  return {
+    id: wh.id,
+    url: wh.url,
+    events: wh.events,
+    active: wh.active,
+    companyId: wh.companyId,
+    createdAt: wh.createdAt,
+    company: wh.company ?? null,
+  };
+}
+
+// Valida url + events del body; devuelve { ok } o { error, status }.
+function validateWebhookBody(body: { url?: unknown; events?: unknown }): { ok: true; url: string; events: EventType[] } | { ok: false; error: string; status: number } {
+  if (typeof body.url !== 'string' || !body.url.trim() || !webhookUrlOk(body.url.trim())) {
+    return { ok: false, error: 'URL inválida (https requerido; http solo localhost)', status: 400 };
+  }
+  if (!Array.isArray(body.events) || body.events.length === 0) {
+    return { ok: false, error: 'Debes seleccionar al menos un evento', status: 400 };
+  }
+  if (!body.events.every((e) => typeof e === 'string' && (EVENT_TYPES as readonly string[]).includes(e))) {
+    return { ok: false, error: 'Evento no válido', status: 400 };
+  }
+  return { ok: true, url: body.url.trim(), events: body.events as EventType[] };
+}
+
+// Para company_admin: el webhook debe ser de SU empresa (404 = no revelar ajenos)
+async function webhookTargetCheck(req: AuthRequest, webhook: { companyId: string | null }): Promise<{ ok: boolean; status?: number; error?: string }> {
+  if (req.userRole === 'company_admin' && webhook.companyId !== req.companyId) {
+    return { ok: false, status: 404, error: 'Webhook no encontrado' };
+  }
+  return { ok: true };
+}
+
+router.get('/webhooks', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const { companyId } = req.query;
+    const where: { companyId?: string | null } | undefined =
+      req.userRole === 'company_admin'
+        ? { companyId: req.companyId }
+        : typeof companyId === 'string' && companyId
+          ? { companyId }
+          : undefined;
+
+    const webhooks = await prisma.webhook.findMany({
+      where,
+      include: { company: { select: COMPANY_SELECT } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(webhooks.map(webhookWithoutSecret));
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener webhooks' });
+  }
+});
+
+router.post('/webhooks', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const validated = validateWebhookBody(req.body ?? {});
+    if (!validated.ok) {
+      res.status(validated.status).json({ error: validated.error });
+      return;
+    }
+
+    let companyId: string | null = null;
+    if (req.userRole === 'company_admin') {
+      if (req.body.companyId && req.body.companyId !== req.companyId) {
+        res.status(403).json({ error: 'Solo puedes configurar webhooks de tu empresa' });
+        return;
+      }
+      companyId = req.companyId ?? null;
+    } else {
+      const bodyCompanyId = req.body.companyId as string | undefined;
+      if (bodyCompanyId) {
+        const company = await prisma.company.findUnique({ where: { id: bodyCompanyId } });
+        if (!company) {
+          res.status(400).json({ error: 'Empresa no encontrada' });
+          return;
+        }
+        companyId = company.id;
+      }
+    }
+
+    const secret = crypto.randomBytes(32).toString('hex');
+    const webhook = await prisma.webhook.create({
+      data: {
+        url: validated.url,
+        secret,
+        events: validated.events,
+        active: req.body.active === false ? false : true,
+        companyId,
+      },
+      include: { company: { select: COMPANY_SELECT } },
+    });
+
+    // El secret se devuelve UNA sola vez (aquí y en regenerate-secret)
+    res.status(201).json({ ...webhookWithoutSecret(webhook), secret });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear webhook' });
+  }
+});
+
+router.put('/webhooks/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.webhook.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Webhook no encontrado' });
+      return;
+    }
+    const target = await webhookTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    const validated = validateWebhookBody(req.body ?? {});
+    if (!validated.ok) {
+      res.status(validated.status).json({ error: validated.error });
+      return;
+    }
+
+    const data: { url: string; events: EventType[]; active: boolean; companyId?: string | null } = {
+      url: validated.url,
+      events: validated.events,
+      active: req.body.active === false ? false : true,
+    };
+    // company_admin no puede mover su webhook a otra empresa; admin sí puede
+    if (req.userRole === 'admin' && req.body.companyId !== undefined) {
+      const bodyCompanyId = req.body.companyId as string | null;
+      if (bodyCompanyId) {
+        const company = await prisma.company.findUnique({ where: { id: bodyCompanyId } });
+        if (!company) {
+          res.status(400).json({ error: 'Empresa no encontrada' });
+          return;
+        }
+        data.companyId = company.id;
+      } else {
+        data.companyId = null;
+      }
+    }
+
+    const webhook = await prisma.webhook.update({
+      where: { id },
+      data,
+      include: { company: { select: COMPANY_SELECT } },
+    });
+    res.json(webhookWithoutSecret(webhook));
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar webhook' });
+  }
+});
+
+router.delete('/webhooks/:id', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.webhook.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Webhook no encontrado' });
+      return;
+    }
+    const target = await webhookTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    await prisma.webhook.delete({ where: { id } });
+    res.json({ message: 'Webhook eliminado' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar webhook' });
+  }
+});
+
+router.post('/webhooks/:id/regenerate-secret', requireUserManager, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.webhook.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Webhook no encontrado' });
+      return;
+    }
+    const target = await webhookTargetCheck(req, existing);
+    if (!target.ok) {
+      res.status(target.status!).json({ error: target.error });
+      return;
+    }
+
+    const secret = crypto.randomBytes(32).toString('hex');
+    await prisma.webhook.update({ where: { id }, data: { secret } });
+    res.json({ id, secret });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al regenerar secret' });
   }
 });
 

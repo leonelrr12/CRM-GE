@@ -29,4 +29,8 @@ declare module 'lucide-react' {
   export const MessageCircle: Icon;
   export const RefreshCw: Icon;
   export const Send: Icon;
+  export const Bell: Icon;
+  export const CheckCheck: Icon;
+  export const Webhook: Icon;
+  export const KeyRound: Icon;
 }

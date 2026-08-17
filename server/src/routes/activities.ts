@@ -3,6 +3,7 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { resolveCompany } from '../middleware/company';
 import { requireCanEdit } from '../middleware/canEdit';
 import { scopedWhere } from '../lib/scoping';
+import { emitEvent } from '../lib/events';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -55,7 +56,7 @@ router.post('/lead/:leadId', requireCanEdit, async (req: AuthRequest, res: Respo
 
     const lead = await prisma.lead.findFirst({
       where: { id: req.params.leadId as string, ...scopedWhere(req) },
-      select: { id: true },
+      select: { id: true, companyId: true },
     });
     if (!lead) {
       res.status(404).json({ error: 'Lead no encontrado' });
@@ -68,6 +69,15 @@ router.post('/lead/:leadId', requireCanEdit, async (req: AuthRequest, res: Respo
         type: type as ActivityType,
         description: description.trim(),
       },
+    });
+
+    await emitEvent({
+      type: 'activity.created',
+      companyId: lead.companyId,
+      title: 'Nueva actividad',
+      message: description.trim().slice(0, 120),
+      link: `/leads/${req.params.leadId}`,
+      data: { leadId: lead.id, activityType: type },
     });
 
     res.status(201).json(activity);

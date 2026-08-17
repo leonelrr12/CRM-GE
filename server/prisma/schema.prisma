@@ -15,8 +15,10 @@ model Company {
   logoUrl      String?  @map("logo_url")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  users        User[]
-  leads        Lead[]
+  users         User[]
+  leads         Lead[]
+  webhooks      Webhook[]
+  notifications Notification[]
 
   @@map("companies")
 }
@@ -68,4 +70,33 @@ model Activity {
   lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@map("activities")
+}
+
+model Webhook {
+  id        String    @id @default(uuid())
+  url       String
+  secret    String
+  events    String[]
+  active    Boolean   @default(true)
+  companyId String?   @map("company_id") // null = global (visible para admins)
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([companyId])
+  @@map("webhooks")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  companyId String    @map("company_id")
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String?
+  link      String?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([companyId, readAt])
+  @@map("notifications")
 }

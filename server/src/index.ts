@@ -10,6 +10,7 @@ import dashboardRoutes from './routes/dashboard';
 import exportRoutes from './routes/export';
 import publicRoutes from './routes/public';
 import adminRoutes from './routes/admin';
+import notificationRoutes from './routes/notifications';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

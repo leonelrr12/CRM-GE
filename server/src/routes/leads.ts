@@ -4,6 +4,7 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { resolveCompany } from '../middleware/company';
 import { requireCanEdit } from '../middleware/canEdit';
 import { scopedWhere } from '../lib/scoping';
+import { emitEvent } from '../lib/events';
 import prisma from '../lib/prisma';
 
 const router = Router();
@@ -11,6 +12,16 @@ router.use(authenticateToken, resolveCompany);
 
 const LEAD_STATUSES = ['nuevo', 'contactado', 'calificado', 'enviar_propuesta', 'negociacion', 'cerrado', 'perdido'] as const;
 type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+const STATUS_LABELS: Record<LeadStatus, string> = {
+  nuevo: 'Nuevo',
+  contactado: 'Contactado',
+  calificado: 'Calificado',
+  enviar_propuesta: 'Enviar propuesta',
+  negociacion: 'Negociación',
+  cerrado: 'Cerrado',
+  perdido: 'Perdido',
+};
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -118,6 +129,15 @@ router.post('/', requireCanEdit, async (req: AuthRequest, res: Response) => {
       include: { activities: true },
     });
 
+    await emitEvent({
+      type: 'lead.created',
+      companyId,
+      title: 'Nuevo lead',
+      message: lead.name,
+      link: `/leads/${lead.id}`,
+      data: { id: lead.id, name: lead.name, email: lead.email, phone: lead.phone, source: lead.source, status: lead.status, city: lead.city },
+    });
+
     res.status(201).json(lead);
   } catch (error) {
     console.error('Error al crear lead:', error);
@@ -137,7 +157,7 @@ router.put('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
 
     const owned = await prisma.lead.findFirst({
       where: { id: req.params.id as string, ...scopedWhere(req) },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!owned) {
       res.status(404).json({ error: 'Lead no encontrado' });
@@ -160,6 +180,18 @@ router.put('/:id', requireCanEdit, async (req: AuthRequest, res: Response) => {
         ...(notes !== undefined && { notes: notes as string }),
       },
       include: { activities: true },
+    });
+
+    const statusChanged = status !== undefined && status !== owned.status;
+    await emitEvent({
+      type: statusChanged ? 'lead.status_changed' : 'lead.updated',
+      companyId: lead.companyId,
+      title: statusChanged ? 'Estado cambiado' : 'Lead actualizado',
+      message: statusChanged
+        ? `${lead.name} · ${STATUS_LABELS[owned.status as LeadStatus]} → ${STATUS_LABELS[lead.status as LeadStatus]}`
+        : lead.name,
+      link: `/leads/${lead.id}`,
+      data: { id: lead.id, name: lead.name, previousStatus: owned.status, status: lead.status },
     });
 
     res.json(lead);
@@ -185,7 +217,7 @@ router.patch('/:id/status', requireCanEdit, async (req: AuthRequest, res: Respon
 
     const owned = await prisma.lead.findFirst({
       where: { id: req.params.id as string, ...scopedWhere(req) },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!owned) {
       res.status(404).json({ error: 'Lead no encontrado' });
@@ -206,6 +238,17 @@ router.patch('/:id/status', requireCanEdit, async (req: AuthRequest, res: Respon
         },
       });
     }
+
+    // La actividad automática de 'contactado' no emite activity.created:
+    // el evento de estado ya cubre el cambio (evita notificación duplicada).
+    await emitEvent({
+      type: 'lead.status_changed',
+      companyId: lead.companyId,
+      title: 'Estado cambiado',
+      message: `${lead.name} · ${STATUS_LABELS[owned.status as LeadStatus]} → ${STATUS_LABELS[lead.status as LeadStatus]}`,
+      link: `/leads/${lead.id}`,
+      data: { id: lead.id, name: lead.name, previousStatus: owned.status, status: lead.status },
+    });
 
     res.json(lead);
   } catch (error) {
@@ -297,6 +340,15 @@ router.post('/:id/send-email', requireCanEdit, async (req: AuthRequest, res: Res
         type: 'email',
         description: `Correo enviado: "${subject.trim()}"`,
       },
+    });
+
+    await emitEvent({
+      type: 'activity.created',
+      companyId: lead.companyId,
+      title: 'Correo enviado',
+      message: subject.trim(),
+      link: `/leads/${lead.id}`,
+      data: { leadId: lead.id, activityType: 'email' },
     });
 
     res.json({ success: true, message: 'Correo enviado' });
@@ -427,6 +479,15 @@ router.post('/:id/chat/send', requireCanEdit, async (req: AuthRequest, res: Resp
         type: 'nota',
         description: `WhatsApp: "${message.trim().slice(0, 120)}"`,
       },
+    });
+
+    await emitEvent({
+      type: 'activity.created',
+      companyId: lead.companyId,
+      title: 'Nueva actividad',
+      message: `WhatsApp: "${message.trim().slice(0, 120)}"`,
+      link: `/leads/${lead.id}`,
+      data: { leadId: lead.id, activityType: 'nota' },
     });
 
     res.json({ success: true, timestamp: new Date().toISOString() });

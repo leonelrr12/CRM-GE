@@ -1,4 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationBell } from './NotificationBell';
 import { LogOut, User } from 'lucide-react';
 
 export default function Navbar() {
@@ -24,6 +25,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <User size={18} />
           <span>{user?.name}</span>

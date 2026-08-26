@@ -404,10 +404,9 @@ export default function LeadDetailPage() {
                   <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
                     <p className="text-sm text-amber-800 font-medium">⏳ Ventana de WhatsApp cerrada</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      El cliente no ha escrito en las últimas 24 horas. La ventana se reabre automáticamente cuando te escriba.
-                      {chatWindowOpensAt && (
-                        <> Se abrirá el {new Date(chatWindowOpensAt).toLocaleString('es')} si el cliente no escribe antes.</>
-                      )}
+                      El cliente no ha escrito en las últimas 24 horas y la ventana se cerró
+                      {chatWindowOpensAt ? <> el {new Date(chatWindowOpensAt).toLocaleString('es')}</> : null}.
+                      Se reabre automáticamente en cuanto el cliente te escriba.
                     </p>
                   </div>
                 )}

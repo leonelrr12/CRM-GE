@@ -355,6 +355,9 @@ router.post('/:id/send-email', requireCanEdit, async (req: AuthRequest, res: Res
 // con la key del .env — mismo patrón que el mailer. La key nunca va al cliente.
 
 const CHAT_TIMEOUT_MS = 8000;
+// Ventana de servicio de WhatsApp: 24h desde el último mensaje del cliente.
+// Dentro se permite mensajería libre; fuera solo plantillas aprobadas por Meta.
+const WHATSAPP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 async function whatsappChatConfig(req: AuthRequest): Promise<{ ok: true; url: string; key: string; session: string } | { ok: false; error: string }> {
   const url = process.env.WHATSAPP_API_URL || 'http://chatbot_backend:3000';
@@ -365,6 +368,38 @@ async function whatsappChatConfig(req: AuthRequest): Promise<{ ok: true; url: st
     return { ok: false, error: 'Chat de WhatsApp no configurado' };
   }
   return { ok: true, url, key, session };
+}
+
+// canReply = la ventana está abierta (último mensaje del cliente < 24h).
+// Sin mensaje entrante nunca → false (no se inician conversaciones fuera de ventana).
+function chatWindowState(lastIncomingAt: string | null): { canReply: boolean; windowOpensAt: string | null } {
+  if (!lastIncomingAt) return { canReply: false, windowOpensAt: null };
+  const lastIn = new Date(lastIncomingAt).getTime();
+  if (Number.isNaN(lastIn)) return { canReply: false, windowOpensAt: null };
+  const opensAt = lastIn + WHATSAPP_WINDOW_MS;
+  return { canReply: Date.now() < opensAt, windowOpensAt: new Date(opensAt).toISOString() };
+}
+
+// Llama al bot para obtener el historial + lastIncomingAt (usado por GET y POST send)
+async function fetchChatFromBot(cfg: { url: string; key: string; session: string }, chatId: string, phoneDigits: string): Promise<{ ok: true; data: { messages: unknown[]; total: number; lastIncomingAt: string | null } } | { ok: false; error: string }> {
+  try {
+    const botRes = await fetch(
+      `${cfg.url}/api/sessions/${cfg.session}/messages?chatId=${encodeURIComponent(chatId)}&phone=${phoneDigits}&limit=100`,
+      {
+        headers: { 'X-API-Key': cfg.key },
+        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+      },
+    );
+    if (!botRes.ok) {
+      console.error('Bot de WhatsApp rechazó la petición de mensajes:', botRes.status);
+      return { ok: false, error: 'WhatsApp no disponible' };
+    }
+    const data = (await botRes.json()) as { messages?: unknown[]; total?: number; lastIncomingAt?: string | null };
+    return { ok: true, data: { messages: data.messages ?? [], total: data.total ?? 0, lastIncomingAt: data.lastIncomingAt ?? null } };
+  } catch (error) {
+    console.error('Error al obtener chat del lead:', error);
+    return { ok: false, error: 'WhatsApp no disponible' };
+  }
 }
 
 // Hilo de conversación del lead (viewer puede leer)
@@ -391,22 +426,21 @@ router.get('/:id/chat', async (req: AuthRequest, res: Response) => {
     const phoneDigits = lead.phone.replace(/\D/g, '');
     const chatId = `${phoneDigits}@s.whatsapp.net`;
 
-    const botRes = await fetch(
-      `${cfg.url}/api/sessions/${cfg.session}/messages?chatId=${encodeURIComponent(chatId)}&phone=${phoneDigits}&limit=100`,
-      {
-        headers: { 'X-API-Key': cfg.key },
-        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-      },
-    );
-
-    if (!botRes.ok) {
-      console.error('Bot de WhatsApp rechazó la petición de mensajes:', botRes.status);
-      res.status(502).json({ error: 'WhatsApp no disponible' });
+    const chat = await fetchChatFromBot(cfg, chatId, phoneDigits);
+    if (!chat.ok) {
+      res.status(502).json({ error: chat.error });
       return;
     }
 
-    const data = (await botRes.json()) as { messages?: unknown[]; total?: number };
-    res.json({ chatId, session: cfg.session, messages: data.messages ?? [], total: data.total ?? 0 });
+    const window = chatWindowState(chat.data.lastIncomingAt);
+    res.json({
+      chatId,
+      session: cfg.session,
+      messages: chat.data.messages,
+      total: chat.data.total,
+      canReply: window.canReply,
+      windowOpensAt: window.windowOpensAt,
+    });
   } catch (error) {
     console.error('Error al obtener chat del lead:', error);
     res.status(502).json({ error: 'WhatsApp no disponible' });
@@ -447,6 +481,19 @@ router.post('/:id/chat/send', requireCanEdit, async (req: AuthRequest, res: Resp
 
     const phoneDigits = lead.phone.replace(/\D/g, '');
     const chatId = `${phoneDigits}@s.whatsapp.net`;
+
+    // Defensa en profundidad: el server también valida la ventana de 24h de Meta
+    // (el input del cliente no es la única barrera; fuera de la ventana solo
+    // se permiten plantillas aprobadas).
+    const chat = await fetchChatFromBot(cfg, chatId, phoneDigits);
+    if (!chat.ok) {
+      res.status(502).json({ error: chat.error });
+      return;
+    }
+    if (!chatWindowState(chat.data.lastIncomingAt).canReply) {
+      res.status(400).json({ error: 'Ventana de WhatsApp cerrada (24h): espera a que el cliente escriba' });
+      return;
+    }
 
     const botRes = await fetch(`${cfg.url}/api/sessions/${cfg.session}/messages/send-text`, {
       method: 'POST',

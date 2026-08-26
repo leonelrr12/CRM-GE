@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, MessageSquarePlus, Mail, MessageCircle, RefreshCw, Send } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Lead, Activity, LeadStatus, ChatMessage } from '../../types';
+import type { Lead, Activity, LeadStatus, ChatMessage, ChatResponse } from '../../types';
 import { SOURCES, STATUSES, ACTIVITY_TYPES } from '../../types';
 
 function safeImageUrl(url: string | null | undefined): string | undefined {
@@ -38,6 +38,8 @@ export default function LeadDetailPage() {
   const [chatError, setChatError] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [chatDraft, setChatDraft] = useState('');
+  const [chatCanReply, setChatCanReply] = useState(true);
+  const [chatWindowOpensAt, setChatWindowOpensAt] = useState<string | null>(null);
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const chatInFlight = useRef(false);
 
@@ -102,8 +104,10 @@ export default function LeadDetailPage() {
     if (chatInFlight.current) return;
     chatInFlight.current = true;
     try {
-      const res = await api.get(`/leads/${id}/chat`);
+      const res = await api.get<ChatResponse>(`/leads/${id}/chat`);
       setChatMessages(res.data.messages);
+      setChatCanReply(res.data.canReply);
+      setChatWindowOpensAt(res.data.windowOpensAt);
       setChatError('');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };
@@ -146,6 +150,16 @@ export default function LeadDetailPage() {
       setChatSending(false);
     }
   };
+
+  // Tiempo restante de la ventana de WhatsApp (24h desde el último mensaje del cliente)
+  const windowRemaining = useMemo(() => {
+    if (!chatWindowOpensAt) return '';
+    const ms = new Date(chatWindowOpensAt).getTime() - Date.now();
+    if (ms <= 0) return '';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return `${h}h ${m}m`;
+  }, [chatWindowOpensAt]);
 
   const renderChatText = (m: ChatMessage) => {
     if (m.type === 'image') return '📷 [Imagen]';
@@ -386,19 +400,34 @@ export default function LeadDetailPage() {
                   )}
                 </div>
 
+                {!chatCanReply && (
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                    <p className="text-sm text-amber-800 font-medium">⏳ Ventana de WhatsApp cerrada</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      El cliente no ha escrito en las últimas 24 horas. La ventana se reabre automáticamente cuando te escriba.
+                      {chatWindowOpensAt && (
+                        <> Se abrirá el {new Date(chatWindowOpensAt).toLocaleString('es')} si el cliente no escribe antes.</>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {chatCanReply && windowRemaining && (
+                  <p className="text-[11px] text-gray-400 mt-2">Ventana de WhatsApp abierta — quedan ~{windowRemaining}</p>
+                )}
                 {canEdit && (
                   <form onSubmit={handleSendChat} className="flex gap-2 mt-3">
                     <input
                       type="text"
-                      placeholder="Escribe una respuesta..."
+                      placeholder={chatCanReply ? 'Escribe una respuesta...' : 'Ventana cerrada — esperando mensaje del cliente'}
                       value={chatDraft}
                       onChange={(e) => setChatDraft(e.target.value)}
                       maxLength={4000}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand"
+                      disabled={!chatCanReply}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                     />
                     <button
                       type="submit"
-                      disabled={chatSending || !chatDraft.trim()}
+                      disabled={chatSending || !chatDraft.trim() || !chatCanReply}
                       className="px-4 py-2 bg-brand text-white rounded-lg text-sm hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="Enviar"
                     >

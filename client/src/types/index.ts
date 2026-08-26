@@ -117,6 +117,15 @@ export interface ChatMessage {
   type?: string;
 }
 
+export interface ChatResponse {
+  chatId: string;
+  session: string;
+  messages: ChatMessage[];
+  total: number;
+  canReply: boolean;
+  windowOpensAt: string | null;
+}
+
 export type UserRole = 'admin' | 'company_admin' | 'user' | 'viewer';
 
 export interface User {
